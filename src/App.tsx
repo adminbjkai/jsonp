@@ -33,7 +33,7 @@ const JsonNode = ({ data, selected }: { data: any, selected?: boolean }) => {
   
   return (
     <div 
-      className={`min-w-[240px] rounded-lg border shadow-2xl overflow-hidden transition-all duration-300 ${selected ? 'ring-2 ring-blue-500 border-blue-400 scale-[1.02]' : 'border-neutral-800 bg-[#1a1a1a]'}`}
+      className={`w-[220px] rounded-lg border shadow-2xl overflow-hidden transition-all duration-300 ${selected ? 'ring-2 ring-blue-500 border-blue-400 scale-[1.02]' : 'border-neutral-800 bg-[#1a1a1a]'}`}
       onClick={() => {
         if (data.onPathClick) data.onPathClick(data.path);
       }}
@@ -46,7 +46,7 @@ const JsonNode = ({ data, selected }: { data: any, selected?: boolean }) => {
         <span className="text-[9px] px-1.5 py-0.5 rounded bg-black/30 text-neutral-500 border border-white/5 uppercase tracking-wider">{data.type}</span>
       </div>
       
-      <div className="p-1.5 space-y-0.5 max-h-[350px] overflow-auto custom-scrollbar-dark">
+      <div className="p-1 space-y-px max-h-[260px] overflow-auto custom-scrollbar-dark">
         {data.properties && data.properties.map((prop: any, i: number) => (
           <div 
             key={i} 
@@ -54,18 +54,11 @@ const JsonNode = ({ data, selected }: { data: any, selected?: boolean }) => {
               e.stopPropagation();
               if (data.onPathClick) data.onPathClick(prop.path);
             }}
-            className={`flex flex-col gap-0.5 px-2 py-1.5 rounded text-[10px] group transition-all duration-200 border border-transparent cursor-pointer ${data.activePath === prop.path ? 'bg-blue-500/10 border-blue-500/30' : 'hover:bg-white/5'}`}
+            className={`flex items-center gap-2 px-2 py-1.5 rounded text-[10px] group transition-all duration-200 border border-transparent cursor-pointer ${data.activePath === prop.path ? 'bg-blue-500/10 border-blue-500/30' : 'hover:bg-white/5'}`}
           >
-            <div className="flex items-center justify-between gap-3">
-               <span className={`font-mono font-medium truncate ${data.activePath === prop.path ? 'text-blue-400' : 'text-neutral-400 group-hover:text-neutral-300'}`}>{prop.key}</span>
-               {isColor(prop.value) ? (
-                 <div className="w-3 h-3 rounded-sm border border-white/10 shadow-sm" style={{ backgroundColor: prop.value }} />
-               ) : (
-                 <span className="text-[8px] text-neutral-600 font-mono uppercase opacity-40">{prop.type}</span>
-               )}
-            </div>
+            <span className={`font-mono font-medium truncate shrink-0 max-w-[82px] ${data.activePath === prop.path ? 'text-blue-400' : 'text-neutral-400 group-hover:text-neutral-300'}`}>{prop.key}</span>
             {!prop.isContainer ? (
-              <span className={`text-[10px] truncate max-w-[200px] font-mono ${
+              <span className={`text-[10px] truncate min-w-0 flex-1 text-right font-mono ${
                 data.activePath === prop.path 
                   ? 'text-blue-300' 
                   : typeof prop.value === 'number' ? 'text-orange-400'
@@ -75,10 +68,13 @@ const JsonNode = ({ data, selected }: { data: any, selected?: boolean }) => {
                 {String(prop.value)}
               </span>
             ) : (
-              <span className="text-[9px] text-neutral-600 font-mono italic opacity-40">
-                {String(prop.value).split(' ')[1]} {String(prop.value).split(' ')[0]}
+              <span className="text-[9px] text-neutral-600 font-mono italic opacity-70 ml-auto whitespace-nowrap">
+                {String(prop.value).replace('Object', 'object').replace('Array', 'array')}
               </span>
             )}
+            {isColor(prop.value) ? (
+              <div className="w-3 h-3 rounded-sm border border-white/10 shadow-sm shrink-0" style={{ backgroundColor: prop.value }} />
+            ) : null}
           </div>
         ))}
         {(!data.properties || data.properties.length === 0) && (
@@ -97,6 +93,56 @@ const nodeTypes = {
   jsonNode: JsonNode
 };
 
+const isContainerEntry = (entry: PathEntry) =>
+  typeof entry.value === 'string' && (entry.value.startsWith('Object') || entry.value.startsWith('Array'));
+
+/**
+ * Lay out the JSON hierarchy as a compact tidy tree.  Unlike the old
+ * depth-by-depth list, each parent is centered over its visible descendants,
+ * keeping adjacent JSON branches together and making the whole structure fit
+ * naturally at an overview zoom.
+ */
+const layoutJsonTree = (containers: PathEntry[]) => {
+  const children = new Map<string, string[]>();
+  const byId = new Map(containers.map(entry => [entry.path, entry]));
+  const roots: string[] = [];
+
+  containers.forEach(entry => {
+    if (!entry.path) {
+      roots.push(entry.path);
+      return;
+    }
+    const slash = entry.path.lastIndexOf('/');
+    const parent = slash === -1 ? '' : entry.path.slice(0, slash);
+    if (byId.has(parent)) {
+      const siblings = children.get(parent) ?? [];
+      siblings.push(entry.path);
+      children.set(parent, siblings);
+    } else {
+      roots.push(entry.path);
+    }
+  });
+
+  let nextRow = 0;
+  const positions = new Map<string, { x: number; y: number }>();
+  const visit = (id: string, depth: number): number => {
+    const descendants = children.get(id) ?? [];
+    if (descendants.length === 0) {
+      const y = nextRow * 190;
+      nextRow += 1;
+      positions.set(id, { x: depth * 320, y });
+      return y;
+    }
+    const childYs = descendants.map(child => visit(child, depth + 1));
+    const y = (childYs[0] + childYs[childYs.length - 1]) / 2;
+    positions.set(id, { x: depth * 320, y });
+    return y;
+  };
+
+  roots.forEach(root => visit(root, 0));
+  return { children, positions };
+};
+
 function JSONGraph({ paths, activePath, onPathClick }: { paths: PathEntry[], activePath: string | null, onPathClick: (path: string) => void }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -112,9 +158,9 @@ function JSONGraph({ paths, activePath, onPathClick }: { paths: PathEntry[], act
     const newNodes: Node[] = [];
     const newEdges: Edge[] = [];
     
-    // Group properties by their parent path to form object nodes
-    const containerNodes = paths.filter(p => typeof p.value === 'string' && (p.value.startsWith('Object') || p.value.startsWith('Array')));
-    const depthLevels: Record<number, number> = {};
+    // Group direct values inside container cards, then position cards as a tidy tree.
+    const containerNodes = paths.filter(isContainerEntry);
+    const { positions } = layoutJsonTree(containerNodes);
 
     containerNodes.forEach((container) => {
       const properties = paths.filter(p => {
@@ -135,11 +181,6 @@ function JSONGraph({ paths, activePath, onPathClick }: { paths: PathEntry[], act
         isContainer: typeof p.value === 'string' && (p.value.startsWith('Object') || p.value.startsWith('Array'))
       }));
 
-      const depth = container.parts.length;
-      if (!depthLevels[depth]) depthLevels[depth] = 0;
-      const yOffset = depthLevels[depth] * 380;
-      depthLevels[depth]++;
-
       newNodes.push({
         id: container.path,
         type: 'jsonNode',
@@ -151,10 +192,10 @@ function JSONGraph({ paths, activePath, onPathClick }: { paths: PathEntry[], act
           path: container.path,
           onPathClick
         },
-        position: { x: depth * 550, y: yOffset },
+        position: positions.get(container.path) ?? { x: 0, y: 0 },
       });
 
-      if (depth > 0) {
+      if (container.path) {
         const lastSlash = container.path.lastIndexOf('/');
         const parentPath = lastSlash === -1 ? "" : container.path.substring(0, lastSlash);
         
@@ -187,7 +228,7 @@ function JSONGraph({ paths, activePath, onPathClick }: { paths: PathEntry[], act
     setEdges(newEdges);
 
     const t = setTimeout(() => {
-      fitView({ padding: 0.4, duration: 1000 });
+      fitView({ padding: 0.16, minZoom: 0.18, maxZoom: 0.92, duration: 350 });
     }, 100);
     return () => clearTimeout(t);
   }, [paths, fitView, setNodes, setEdges]);
@@ -225,9 +266,10 @@ function JSONGraph({ paths, activePath, onPathClick }: { paths: PathEntry[], act
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
-        fitView
-        minZoom={0.01}
-        maxZoom={1.5}
+        minZoom={0.08}
+        maxZoom={1.8}
+        nodesConnectable={false}
+        proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={{
           type: 'smoothstep',
         }}
@@ -241,7 +283,7 @@ function JSONGraph({ paths, activePath, onPathClick }: { paths: PathEntry[], act
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Visual Graph</span>
-              <span className="text-[8px] font-mono text-neutral-500">Interactive JSON Deep-Dive</span>
+              <span className="text-[8px] font-mono text-neutral-500">{nodes.length} containers · tidy tree layout</span>
             </div>
           </div>
         </Panel>
@@ -1377,4 +1419,3 @@ export default function App() {
     </div>
   );
 }
-
