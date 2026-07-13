@@ -1,0 +1,6 @@
+{
+  "name": "JSON Prettify",
+  "description": "A minimalist live JSON formatter and prettifier with real-time validation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
