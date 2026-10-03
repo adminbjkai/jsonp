@@ -1,0 +1,191 @@
+import { test, expect } from '@playwright/test';
+import { read } from 'xlsx';
+
+test('formats accurately, selects escaped paths, searches, exports, and handles errors', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('/');
+  await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+  await page
+    .getByLabel('JSON source')
+    .fill('{"a/b":{"0":9007199254740993},"kind":"Object","nil":null}');
+  await expect(page.getByText('5 values', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '0 9007199254740993', exact: true }).click();
+  await expect(page.locator('.path-inspector')).toContainText('/a~1b/0');
+  await expect(page.locator('.path-inspector')).toContainText('$["a/b"]["0"]');
+  const range = await page
+    .getByLabel('JSON source')
+    .evaluate((el: HTMLTextAreaElement) => el.value.slice(el.selectionStart, el.selectionEnd));
+  expect(range).toBe('9007199254740993');
+  await page.getByLabel('Search paths and values').fill('nil');
+  await expect(page.getByRole('listitem')).toHaveCount(1);
+  await page.getByLabel('Search paths and values').fill('');
+  await page.getByLabel('Collapse all', { exact: true }).click();
+  await expect(page.getByRole('listitem')).toHaveCount(1);
+  await page.getByLabel('Expand all', { exact: true }).click();
+  await expect(page.getByRole('listitem')).toHaveCount(5);
+  const jsonDownload = page.waitForEvent('download');
+  await page.getByLabel('Download JSON', { exact: true }).click();
+  const json = await jsonDownload;
+  expect(json.suggestedFilename()).toBe('formatted.json');
+  const { readFile } = await import('node:fs/promises');
+  expect(await readFile((await json.path())!, 'utf8')).toContain('9007199254740993');
+  const excelDownload = page.waitForEvent('download');
+  await page.getByLabel('Export mapping to Excel', { exact: true }).click();
+  const excel = await excelDownload;
+  const workbook = read(await readFile((await excel.path())!), { type: 'buffer' });
+  expect(workbook.SheetNames).toEqual(['Data_Mapping_IRD']);
+  expect(workbook.Sheets.Data_Mapping_IRD.D4.v).toBe('9007199254740993');
+  await page.getByLabel('JSON source').fill('{oops');
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByLabel('Download JSON', { exact: true })).toBeDisabled();
+  await page.getByLabel('JSON source').fill('true');
+  await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('graph loads on demand; layout controls and shortcuts work', async ({ page }) => {
+  const requests: string[] = [];
+  page.on('request', (request) => requests.push(request.url()));
+  await page.goto('/');
+  await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Graph', exact: true }).click();
+  await expect(page.locator('.graph-card')).toHaveCount(5);
+  await page.getByLabel('Focus Graph', { exact: true }).click();
+  await expect(page.locator('[data-pane=graph]')).toBeVisible();
+  await expect(page.locator('[data-pane=input]')).toBeHidden();
+  await page.getByLabel('Restore workspace', { exact: true }).click();
+  const sourceHeader = page.locator('[data-pane=input] .pane-title');
+  const outputHeader = page.locator('[data-pane=output] .pane-title');
+  await outputHeader.dragTo(sourceHeader);
+  await expect(page.locator('[data-pane]').first()).toHaveAttribute('data-pane', 'output');
+  const sourcePane = page.locator('[data-pane=input]');
+  const beforeWidth = (await sourcePane.boundingBox())!.width;
+  const divider = await page.getByLabel('Resize Source', { exact: true }).boundingBox();
+  await page.mouse.move(divider!.x + 3, divider!.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(divider!.x + 43, divider!.y + 20);
+  await page.mouse.up();
+  expect((await sourcePane.boundingBox())!.width).toBeGreaterThan(beforeWidth);
+  await page.getByLabel('Reset layout', { exact: true }).click();
+  await expect(page.locator('[data-pane]').first()).toHaveAttribute('data-pane', 'input');
+  await page.getByRole('button', { name: 'Graph', exact: true }).click();
+  await page.locator('.graph-card-title').filter({ hasText: 'settings' }).click();
+  await expect(page.locator('.path-inspector')).toContainText('$.settings');
+  await page.getByLabel('Close graph', { exact: true }).click();
+  await page.getByLabel('Collapse Explorer', { exact: true }).click();
+  await page.getByRole('button', { name: 'Expand Explorer' }).click();
+  await page.getByLabel('Keyboard shortcuts', { exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByLabel('Indentation').selectOption('0');
+  await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Format', exact: true }).click();
+  await expect(page.getByLabel('JSON source')).not.toHaveValue(/\n/);
+  await page.getByLabel('Undo last replacement', { exact: true }).click();
+  await expect(page.getByLabel('JSON source')).toHaveValue(/\n/);
+  expect(requests.filter((url) => /googleapis|fonts.gstatic|generativelanguage/.test(url))).toEqual(
+    [],
+  );
+});
+
+test('mobile panes and theme remain usable without page overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('JSON source')).toBeVisible();
+  await page.getByRole('navigation').getByRole('button', { name: 'Explorer' }).click();
+  await expect(page.getByLabel('Search paths and values')).toBeVisible();
+  await page.getByRole('navigation').getByRole('button', { name: 'Formatted' }).click();
+  await expect(page.getByLabel('Formatted JSON', { exact: true })).toBeVisible();
+  await page.getByLabel('Use light theme', { exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('large documents stay virtualized and outdated results cannot overwrite edits', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page
+    .getByLabel('JSON source')
+    .fill(JSON.stringify(Array.from({ length: 5000 }, (_, id) => ({ id, text: `record ${id}` }))));
+  await expect(page.getByText('15,001 values', { exact: true })).toBeVisible();
+  expect(await page.getByRole('listitem').count()).toBeLessThan(100);
+  expect(await page.locator('.code-line').count()).toBeLessThan(100);
+  await page.getByLabel('Search paths and values').fill('record 4999');
+  await expect(page.getByRole('listitem')).toHaveCount(1);
+  await page.getByLabel('JSON source').fill('{"latest":true}');
+  await expect(page.getByText('2 values', { exact: true })).toBeVisible();
+  await page.getByLabel('Search paths and values').fill('');
+  await expect(page.getByRole('listitem')).toHaveCount(2);
+});
+
+test('file import, keyboard formatting, source reset, and root copy work', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto('/');
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'example.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from('\uFEFF{"01":42,"":"yes"}'),
+  });
+  await expect(page.getByText('3 values', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'document Object(2)', exact: true }).click();
+  await page.getByLabel('Copy Pointer', { exact: true }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('');
+  await page.getByLabel('JSON source').press('Control+Enter');
+  await expect(page.getByLabel('JSON source')).toHaveValue('{\n  "01": 42,\n  "": "yes"\n}');
+  await page.getByLabel('Clear source', { exact: true }).click();
+  await expect(page.getByText('Empty document', { exact: true })).toBeVisible();
+  await page.getByLabel('Undo last replacement', { exact: true }).click();
+  await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+});
+
+test('desktop and mobile themes meet accessibility checks', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const { default: AxeBuilder } = await import('@axe-core/playwright');
+  await page.goto('/');
+  await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+  for (const theme of ['dark', 'light']) {
+    if (theme === 'light') await page.getByLabel('Use light theme', { exact: true }).click();
+    const report = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      .analyze();
+    expect(
+      report.violations.map((violation) => ({
+        id: violation.id,
+        nodes: violation.nodes.map((node) => node.target),
+      })),
+    ).toEqual([]);
+  }
+  await page.getByRole('button', { name: 'Graph', exact: true }).click();
+  await page.getByLabel('Focus Graph', { exact: true }).click();
+  await expect(page.locator('.graph-card')).toHaveCount(5);
+  const graph = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(
+    graph.violations.map((violation) => ({
+      id: violation.id,
+      nodes: violation.nodes.map((node) => node.target),
+    })),
+  ).toEqual([]);
+  await page.getByLabel('Close graph', { exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobile = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(
+    mobile.violations.map((violation) => ({
+      id: violation.id,
+      nodes: violation.nodes.map((node) => node.target),
+    })),
+  ).toEqual([]);
+});

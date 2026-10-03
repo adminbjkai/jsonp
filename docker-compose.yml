@@ -1,0 +1,22 @@
+services:
+  web:
+    build: .
+    container_name: jsonp-web
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8025:8080'
+    mem_limit: 64m
+    cpus: 0.5
+    pids_limit: 32
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: '5m'
+        max-file: '2'
