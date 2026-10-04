@@ -2,7 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { writeXlsx } from 'hucre/xlsx';
 import { writeOds } from 'hucre/ods';
-import { formatFromName, sniffText, importBytes, yamlToJSON, xmlToJSON } from '../src/importers';
+import {
+  formatFromName,
+  sniffText,
+  importBytes,
+  yamlToJSON,
+  xmlToJSON,
+} from '../src/lib/importers';
 
 const bytes = (text: string) => new TextEncoder().encode(text);
 

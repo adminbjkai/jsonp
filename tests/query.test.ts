@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseTree, serialize } from '../src/tree';
-import { EXAMPLE } from '../src/json';
-import { isQuery, runQuery } from '../src/query';
+import { parseTree, serialize } from '../src/lib/tree';
+import { EXAMPLE } from '../src/lib/json';
+import { isQuery, runQuery } from '../src/lib/query';
 
 const values = (source: string, expression: string, limit?: number) =>
   runQuery(parseTree(source), expression, limit).map((m) => serialize(m.node, 0));

@@ -1,6 +1,6 @@
-import type { MappingEntry } from './json';
-import type { ExportKind } from './ird';
-import { buildWorkbook } from './workbooks';
+import type { MappingEntry } from '../lib/json';
+import type { ExportKind } from '../lib/ird';
+import { buildWorkbook } from '../lib/workbooks';
 interface ExportWorker {
   onmessage: ((event: MessageEvent<{ entries: MappingEntry[]; kind: ExportKind }>) => void) | null;
   postMessage: (message: unknown, transfer?: Transferable[]) => void;

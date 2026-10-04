@@ -1,6 +1,6 @@
 import { useMemo, type RefObject } from 'react';
 import { BarChart3, X } from 'lucide-react';
-import { jsonPath, type Entry, type ValueType } from './json';
+import { jsonPath, type Entry, type ValueType } from '../lib/json';
 const TYPES: ValueType[] = ['object', 'array', 'string', 'number', 'boolean', 'null'];
 /** A quick profile of the document: shape, types, common keys, and the largest arrays. */
 export default function Insights({

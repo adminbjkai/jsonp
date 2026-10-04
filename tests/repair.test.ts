@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { repairJSON } from '../src/repair';
+import { repairJSON } from '../src/lib/repair';
 
 /** Repairs and returns the compact-comparable parsed value plus fixes. */
 const fix = (source: string) => {

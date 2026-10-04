@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { processJSON } from '../src/json';
-import { irdRows, blankIRDRows, IRD_HEADERS, reusablePath } from '../src/ird';
+import { processJSON } from '../src/lib/json';
+import { irdRows, blankIRDRows, IRD_HEADERS, reusablePath } from '../src/lib/ird';
 
 test('IRD mapping is structural, sample-free, and leaves decisions blank', () => {
   const result = processJSON(

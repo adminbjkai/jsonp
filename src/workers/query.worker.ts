@@ -1,6 +1,6 @@
-import { parseTree, serialize } from './tree';
-import { runQuery } from './query';
-import { pointer } from './json';
+import { parseTree, serialize } from '../lib/tree';
+import { runQuery } from '../lib/query';
+import { pointer } from '../lib/json';
 export interface QueryReply {
   error: string | null;
   paths: string[];

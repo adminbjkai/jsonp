@@ -79,7 +79,9 @@ export async function importFile(file: File): Promise<ImportResult> {
   if (file.size > MAX_IMPORT_BYTES) throw new Error(`${file.name} is larger than 5 MiB.`);
   const bytes = new Uint8Array(await file.arrayBuffer());
   return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('./import.worker.ts', import.meta.url), { type: 'module' });
+    const worker = new Worker(new URL('../workers/import.worker.ts', import.meta.url), {
+      type: 'module',
+    });
     const timer = setTimeout(() => {
       worker.terminate();
       reject(new Error('Import timed out.'));

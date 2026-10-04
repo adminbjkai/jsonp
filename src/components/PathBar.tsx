@@ -1,5 +1,5 @@
 import { ChevronRight, Copy, CornerUpLeft } from 'lucide-react';
-import { jsonPath, pointer, type Entry } from './json';
+import { jsonPath, pointer, type Entry } from '../lib/json';
 interface Props {
   entry?: Entry;
   select: (path: string) => void;

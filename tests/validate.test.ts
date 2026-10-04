@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateDocument } from '../src/validate';
-import { toJSONSchema } from '../src/convert';
-import { parseTree } from '../src/tree';
-import { EXAMPLE, processJSON } from '../src/json';
+import { validateDocument } from '../src/lib/validate';
+import { toJSONSchema } from '../src/lib/convert';
+import { parseTree } from '../src/lib/tree';
+import { EXAMPLE, processJSON } from '../src/lib/json';
 
 const schema = (value: unknown) => JSON.stringify(value);
 

@@ -9,9 +9,9 @@ import {
   SAMPLE_MODIFIED,
   SAMPLE_ORIGINAL,
   type Row,
-} from '../src/linediff';
-import { processJSON } from '../src/json';
-import { parseTree, serialize, sortKeys } from '../src/tree';
+} from '../src/lib/linediff';
+import { processJSON } from '../src/lib/json';
+import { parseTree, serialize, sortKeys } from '../src/lib/tree';
 
 const kinds = (rows: Row[]) => rows.map((row) => row.kind).join(' ');
 const pretty = (value: unknown) => JSON.stringify(value, null, 2).split('\n');

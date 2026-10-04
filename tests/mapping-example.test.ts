@@ -1,13 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { EXAMPLE, processJSON } from '../src/json';
-import { reusablePath, needsSource, IRD_HEADERS } from '../src/ird';
+import { EXAMPLE, processJSON } from '../src/lib/json';
+import { reusablePath, needsSource, IRD_HEADERS } from '../src/lib/ird';
 import {
   TARGET_FIELDS,
   EXAMPLE_MAPPING,
   TARGET_PROJECTS,
   TARGET_CREW,
-} from '../src/mapping-example';
+} from '../src/lib/mapping-example';
 
 test('known target and completed IRD cover precisely the same eleven columns', () => {
   const targets = TARGET_FIELDS.map((field) => `${field.Table}.${field.Field}`);

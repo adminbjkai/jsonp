@@ -56,22 +56,22 @@ import {
   LayoutPanelLeft,
   ArrowLeftToLine,
 } from 'lucide-react';
-import { EXAMPLE, MAX_INPUT, jsonPath, type DocumentResult, type Indent } from './json';
-import { download, exportMapping } from './export';
-import Explorer from './Explorer';
-import Output from './Output';
-import PathBar from './PathBar';
-import ExportDialog from './ExportDialog';
-import Menu, { type MenuItem } from './Menu';
-import CommandPalette, { type Command } from './CommandPalette';
-import HelpDialog from './HelpDialog';
-import ConvertDialog, { type ConvertRequest } from './ConvertDialog';
-import FormatterView, { savedOutputView, type OutputView } from './FormatterView';
-import SchemaDialog from './SchemaDialog';
-import Insights from './Insights';
-import SourceEditor from './SourceEditor';
-import TableView from './TableView';
-import { needsSource, type ExportKind } from './ird';
+import { EXAMPLE, MAX_INPUT, jsonPath, type DocumentResult, type Indent } from './lib/json';
+import { download, exportMapping } from './lib/export';
+import Explorer from './components/Explorer';
+import Output from './components/Output';
+import PathBar from './components/PathBar';
+import ExportDialog from './components/ExportDialog';
+import Menu, { type MenuItem } from './components/Menu';
+import CommandPalette, { type Command } from './components/CommandPalette';
+import HelpDialog from './components/HelpDialog';
+import ConvertDialog, { type ConvertRequest } from './components/ConvertDialog';
+import FormatterView, { savedOutputView, type OutputView } from './components/FormatterView';
+import SchemaDialog from './components/SchemaDialog';
+import Insights from './components/Insights';
+import SourceEditor from './components/SourceEditor';
+import TableView from './components/TableView';
+import { needsSource, type ExportKind } from './lib/ird';
 import {
   parseTree,
   serialize,
@@ -81,12 +81,12 @@ import {
   unescapeJSON,
   nodeAt,
   type Node,
-} from './tree';
-import { FORMATS, type Format } from './convert';
-import { importFile, formatFromName, sniffText } from './importFile';
-import { shareLink, readShared, MAX_SHARE_LENGTH } from './share';
-const Graph = lazy(() => import('./Graph'));
-const CompareView = lazy(() => import('./CompareView'));
+} from './lib/tree';
+import { FORMATS, type Format } from './lib/convert';
+import { importFile, formatFromName, sniffText } from './lib/importFile';
+import { shareLink, readShared, MAX_SHARE_LENGTH } from './lib/share';
+const Graph = lazy(() => import('./components/Graph'));
+const CompareView = lazy(() => import('./components/CompareView'));
 type Mode = 'format' | 'workspace' | 'compare';
 const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: 'format', label: 'Format', hint: 'Paste, format, validate, and convert' },
@@ -256,7 +256,7 @@ export default function App() {
     setBusy(true);
     let worker: Worker | undefined;
     const timer = setTimeout(() => {
-      worker = new Worker(new URL('./json.worker.ts', import.meta.url), { type: 'module' });
+      worker = new Worker(new URL('./workers/json.worker.ts', import.meta.url), { type: 'module' });
       worker.onmessage = (event: MessageEvent<DocumentResult>) => {
         setResult(event.data);
         setProcessedInput(input);

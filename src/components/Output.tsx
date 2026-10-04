@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
-import type { Entry } from './json';
+import type { Entry } from '../lib/json';
 const HEIGHT = 22;
 function Line({ text }: { text: string }) {
   if (text.length > 10_000) return <>{text}</>;

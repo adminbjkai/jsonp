@@ -1,4 +1,4 @@
-import { compareDocuments, type CompareRequest, type CompareResult } from './linediff';
+import { compareDocuments, type CompareRequest, type CompareResult } from '../lib/linediff';
 export type CompareReply = { result: CompareResult; error?: undefined } | { error: string };
 // Comparison runs here so a slow diff can be cancelled without freezing the page.
 self.onmessage = (event: MessageEvent<CompareRequest>) => {

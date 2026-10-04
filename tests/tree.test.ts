@@ -9,7 +9,7 @@ import {
   escapeJSON,
   unescapeJSON,
   fromValue,
-} from '../src/tree';
+} from '../src/lib/tree';
 
 test('round-trips exact numbers, escapes, and duplicate keys', () => {
   const source = '{"b":1.50,"a":[9007199254740993,-0,1e+400],"a":"\\u00e9\\n","":{}}';
@@ -40,7 +40,7 @@ test('finds nodes and transforms losslessly', () => {
 });
 
 test('compares number tokens exactly', async () => {
-  const { compareNumbers } = await import('../src/tree');
+  const { compareNumbers } = await import('../src/lib/tree');
   assert.equal(compareNumbers('9007199254740993', '9007199254740992'), 1);
   assert.equal(compareNumbers('1.0', '1'), 0);
   assert.equal(compareNumbers('-0', '0'), 0);

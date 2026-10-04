@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseTree, serialize } from '../src/tree';
-import { EXAMPLE } from '../src/json';
+import { parseTree, serialize } from '../src/lib/tree';
+import { EXAMPLE } from '../src/lib/json';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import {
   FORMATS,
@@ -18,7 +18,7 @@ import {
   toKotlin,
   toCSharp,
   toXML,
-} from '../src/convert';
+} from '../src/lib/convert';
 
 const orbital = parseTree(EXAMPLE);
 

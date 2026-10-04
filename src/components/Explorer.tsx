@@ -15,9 +15,9 @@ import {
   CornerUpLeft,
   Braces,
 } from 'lucide-react';
-import { isContainer, type Entry, jsonPath, jsPath, pointer } from './json';
-import { isQuery } from './query';
-import type { QueryReply } from './query.worker';
+import { isContainer, type Entry, jsonPath, jsPath, pointer } from '../lib/json';
+import { isQuery } from '../lib/query';
+import type { QueryReply } from '../workers/query.worker';
 interface Props {
   entries: Entry[];
   active: string | null;
@@ -68,7 +68,9 @@ export default function Explorer({
       setReply({ ...result, expression });
     };
     const start = setTimeout(() => {
-      worker = new Worker(new URL('./query.worker.ts', import.meta.url), { type: 'module' });
+      worker = new Worker(new URL('../workers/query.worker.ts', import.meta.url), {
+        type: 'module',
+      });
       worker.onmessage = (event: MessageEvent<QueryReply>) => finish(event.data);
       worker.onerror = () => finish({ error: 'The query could not run.', paths: [], json: '' });
       worker.postMessage({ source, expression });

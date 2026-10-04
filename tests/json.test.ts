@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { processJSON, pointer, jsonPath, jsPath, mappingRows, MAX_INPUT } from '../src/json';
+import { processJSON, pointer, jsonPath, jsPath, mappingRows, MAX_INPUT } from '../src/lib/json';
 
 test('formats nested JSON with exact source and output ranges', () => {
   const source = '{"a": [1, {"b": true}], "empty": {}}';

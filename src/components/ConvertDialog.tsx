@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type RefObject } from 'react';
 import { Copy, Download, Shuffle, X } from 'lucide-react';
-import { convert, FORMATS, type Format } from './convert';
-import { nodeAt, type Node } from './tree';
-import { jsonPath, type Entry } from './json';
-import { download } from './export';
+import { convert, FORMATS, type Format } from '../lib/convert';
+import { nodeAt, type Node } from '../lib/tree';
+import { jsonPath, type Entry } from '../lib/json';
+import { download } from '../lib/export';
 const PREVIEW = 200_000;
 export interface ConvertRequest {
   format?: Format;

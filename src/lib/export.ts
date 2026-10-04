@@ -10,7 +10,9 @@ export function download(content: BlobPart, name: string, type = 'application/js
 }
 export async function exportMapping(entries: Entry[], kind: ExportKind = 'samples') {
   const buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-    const worker = new Worker(new URL('./export.worker.ts', import.meta.url), { type: 'module' });
+    const worker = new Worker(new URL('../workers/export.worker.ts', import.meta.url), {
+      type: 'module',
+    });
     const timer = setTimeout(() => {
       worker.terminate();
       reject(new Error('Export timed out.'));

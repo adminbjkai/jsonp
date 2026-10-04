@@ -32,12 +32,12 @@ import {
   X,
 } from 'lucide-react';
 import SourceEditor from './SourceEditor';
-import type { ChangeKind } from './diff';
-import { jsonPath, MAX_INPUT } from './json';
-import { locateError, type SyntaxProblem } from './locate';
-import { repairJSON } from './repair';
-import { importFile, formatFromName } from './importFile';
-import { parseTree, serialize } from './tree';
+import type { ChangeKind } from '../lib/diff';
+import { jsonPath, MAX_INPUT } from '../lib/json';
+import { locateError, type SyntaxProblem } from '../lib/locate';
+import { repairJSON } from '../lib/repair';
+import { importFile, formatFromName } from '../lib/importFile';
+import { parseTree, serialize } from '../lib/tree';
 import {
   buildDisplay,
   displayIndexOf,
@@ -45,9 +45,9 @@ import {
   SAMPLE_ORIGINAL,
   type CompareResult,
   type Row,
-} from './linediff';
-import type { CompareReply } from './compare.worker';
-import './styles/compare.css';
+} from '../lib/linediff';
+import type { CompareReply } from '../workers/compare.worker';
+import '../styles/compare.css';
 
 export interface CompareViewProps {
   /** Current Source document (may be empty or invalid). */
@@ -486,7 +486,7 @@ export default function CompareView({
     }
     setMessage('');
     setRunning(true);
-    const worker = new Worker(new URL('./compare.worker.ts', import.meta.url), {
+    const worker = new Worker(new URL('../workers/compare.worker.ts', import.meta.url), {
       type: 'module',
     });
     workerRef.current = worker;

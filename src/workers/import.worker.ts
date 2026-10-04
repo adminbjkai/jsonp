@@ -1,4 +1,4 @@
-import { importBytes } from './importers';
+import { importBytes } from '../lib/importers';
 interface ImportWorker {
   onmessage: ((event: MessageEvent<{ name: string; bytes: Uint8Array }>) => void) | null;
   postMessage: (message: unknown) => void;

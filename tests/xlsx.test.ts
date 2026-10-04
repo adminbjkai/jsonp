@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readXlsx } from 'hucre/xlsx';
 import type { Workbook } from 'hucre/xlsx';
-import { processJSON } from '../src/json';
-import { IRD_HEADERS } from '../src/ird';
-import { buildWorkbook } from '../src/workbooks';
+import { processJSON } from '../src/lib/json';
+import { IRD_HEADERS } from '../src/lib/ird';
+import { buildWorkbook } from '../src/lib/workbooks';
 
 const entries = processJSON(
   '{"a/b":{"0":9007199254740993},"kind":"#N/A","formula":"=1+1","nil":null}',
@@ -124,7 +124,7 @@ test('worked example workbooks share target sheets; the IRD adds the field mappi
 });
 
 test('cell text drops characters XML cannot hold and respects the Excel cell limit', async () => {
-  const { cellText } = await import('../src/workbooks');
+  const { cellText } = await import('../src/lib/workbooks');
   assert.equal(cellText('a￾b\u0001c\td'), 'a�b�c\td');
   assert.equal(cellText('\uD800x'), '�x');
   assert.equal(cellText('😀'), '😀');

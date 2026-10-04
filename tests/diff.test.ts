@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseTree } from '../src/tree';
-import { EXAMPLE, pointer } from '../src/json';
-import { diffTrees } from '../src/diff';
+import { parseTree } from '../src/lib/tree';
+import { EXAMPLE, pointer } from '../src/lib/json';
+import { diffTrees } from '../src/lib/diff';
 
 const diff = (a: string, b: string, options?: { ignoreOrder?: boolean; limit?: number }) =>
   diffTrees(parseTree(a), parseTree(b), options);

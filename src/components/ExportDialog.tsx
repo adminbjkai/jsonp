@@ -1,6 +1,6 @@
 import { useEffect, useState, type RefObject } from 'react';
 import { FileSpreadsheet, Download, X } from 'lucide-react';
-import { needsSource, type ExportKind } from './ird';
+import { needsSource, type ExportKind } from '../lib/ird';
 interface Props {
   dialogRef: RefObject<HTMLDialogElement | null>;
   count: number;

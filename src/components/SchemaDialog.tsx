@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { ShieldCheck, Upload, Wand2, X, CheckCircle2, AlertCircle } from 'lucide-react';
-import type { SchemaIssue } from './validate';
-import { toJSONSchema } from './convert';
-import type { Node } from './tree';
-import { jsonPath, MAX_INPUT, type Entry } from './json';
+import type { SchemaIssue } from '../lib/validate';
+import { toJSONSchema } from '../lib/convert';
+import type { Node } from '../lib/tree';
+import { jsonPath, MAX_INPUT, type Entry } from '../lib/json';
 interface Props {
   dialogRef: RefObject<HTMLDialogElement | null>;
   source: string;
@@ -26,7 +26,9 @@ export default function SchemaDialog({ dialogRef, source, tree, entryAt, select,
     if (!schemaText.trim()) return notify('Paste a JSON Schema first, or generate one.');
     worker.current?.stop();
     setRunning(true);
-    const job = new Worker(new URL('./validate.worker.ts', import.meta.url), { type: 'module' });
+    const job = new Worker(new URL('../workers/validate.worker.ts', import.meta.url), {
+      type: 'module',
+    });
     const finish = (next: Result) => {
       clearTimeout(timer);
       job.terminate();

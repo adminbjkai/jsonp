@@ -29,8 +29,8 @@ import {
   ZoomOut,
 } from 'lucide-react';
 import 'reactflow/dist/style.css';
-import './styles/graph.css';
-import { isContainer, type Entry } from './json';
+import '../styles/graph.css';
+import { isContainer, type Entry } from '../lib/json';
 
 /* ------------------------------------------------------------------ */
 /* Pure layout helpers (unit tested in tests/graph.test.ts)            */

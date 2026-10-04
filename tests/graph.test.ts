@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as nodeModule from 'node:module';
-import { processJSON } from '../src/json';
+import { processJSON } from '../src/lib/json';
 
 // Graph.tsx imports stylesheets; let Node treat them as empty modules.
 const CSS = { format: 'module' as const, source: '', shortCircuit: true };
@@ -27,7 +27,7 @@ const {
   isUrlValue,
   CARD_WIDTH,
   MAX_VISIBLE_CARDS,
-} = await import('../src/Graph');
+} = await import('../src/components/Graph');
 
 const entries = (value: unknown) => processJSON(JSON.stringify(value)).entries;
 const ORBITAL = entries({
