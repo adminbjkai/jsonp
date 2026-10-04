@@ -9,8 +9,15 @@ npm audit --audit-level=low
 
 # Preserve the image actually running, rather than an unrelated latest build.
 previous_image=$(docker inspect jsonp-web --format '{{.Image}}' 2>/dev/null || true)
-if [[ -n "$previous_image" ]]; then
-  docker image tag "$previous_image" jsonp-web:rollback
+if [[ -n "$previous_image" ]] && ! docker image tag "$previous_image" jsonp-web:rollback 2>/dev/null; then
+  # The running image can be untagged and pruned (e.g. after a manual build). Fall back to an
+  # existing rollback tag rather than deploying without one.
+  if docker image inspect jsonp-web:rollback >/dev/null 2>&1; then
+    echo "warning: running image is unavailable; keeping the existing jsonp-web:rollback" >&2
+  else
+    echo "error: no rollback image available; build one before deploying" >&2
+    exit 1
+  fi
 fi
 
 docker compose build
