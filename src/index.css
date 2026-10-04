@@ -558,13 +558,15 @@ h2 {
 .row-copy {
   color: var(--muted);
   padding: 4px;
-  opacity: 0;
+  opacity: 1;
 }
 .path-row:hover .row-copy,
 .path-row:focus-within .row-copy {
   opacity: 1;
 }
 .path-inspector {
+  max-height: 45%;
+  overflow: auto;
   border-top: 1px solid var(--line);
   padding: 14px;
   flex-shrink: 0;
@@ -584,10 +586,12 @@ h2 {
 }
 .path-format {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   min-width: 0;
-  height: 29px;
+  min-height: 30px;
+  height: auto;
+  padding: 4px 0;
   font-size: 10px;
 }
 .path-format label {
@@ -596,11 +600,12 @@ h2 {
   flex-shrink: 0;
 }
 .path-format code {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   flex: 1;
   color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 70px;
+  overflow: auto;
 }
 .path-format button {
   padding: 4px;
@@ -1077,11 +1082,284 @@ kbd {
 .react-flow__attribution a {
   color: #9ba895 !important;
 }
-.key-selection .path-select > span {
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.selection-bar {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  margin: 0 28px 14px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  gap: 14px;
+  flex-shrink: 0;
+}
+.selection-hint {
+  color: var(--dim);
+  font-size: 11px;
+  padding: 5px;
+}
+.path-breadcrumbs {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: auto;
+  white-space: nowrap;
+  flex: 1;
+  font:
+    11px Consolas,
+    monospace;
+}
+.path-breadcrumbs > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--dim);
+}
+.path-breadcrumbs button {
+  max-width: 150px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 5px;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.selected-path-copy {
+  min-width: 0;
+  max-width: 45%;
+  justify-content: space-between;
+  padding: 5px 8px;
+  font-size: 11px;
+  color: var(--accent);
+  border: 1px solid var(--line);
+}
+.selected-path-copy code {
+  overflow: auto;
+  white-space: nowrap;
+}
+.selected-path-copy svg,
+.source-jump svg {
+  flex-shrink: 0;
+}
+.source-jump {
+  font-size: 11px;
+  padding: 5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.export-dialog {
+  width: 510px;
+}
+.export-dialog h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.export-options {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 10px;
+}
+.export-option {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  cursor: pointer;
+}
+.export-option.chosen {
+  border-color: var(--accent);
+  background: var(--selected);
+}
+.export-option input {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  margin: 2px 0 0;
+}
+.export-option strong {
+  font-weight: 500;
+  font-size: 13px;
+  display: block;
+  margin-bottom: 7px;
+}
+.export-option small {
+  display: block;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.export-option:has(input:disabled) {
+  cursor: default;
+}
+.export-option:has(input:disabled) strong {
+  color: var(--dim);
+}
+.export-summary {
+  font-size: 10px;
+  line-height: 1.6;
+  margin: 15px 0;
+  color: var(--dim);
+}
+.button.primary-button {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.export-download {
+  width: 100%;
+}
+.export-error {
+  color: var(--error) !important;
+}
+.path-display-toolbar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 10px;
+  min-height: 34px;
+  color: var(--muted);
+}
+.path-display-toolbar label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.path-display-toolbar select {
+  border: 0;
+  border-radius: 4px;
+  font-size: 10px;
+  padding: 4px;
+}
+.path-display-toolbar > span {
+  margin-left: auto;
+  white-space: nowrap;
+  color: var(--dim);
+}
+.path-display-toolbar button {
+  padding: 4px;
+  font-size: 10px;
+}
+.path-select > .path-row-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  padding-right: 2px;
+}
+.path-row-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.path-row-main > span {
+  flex: 1;
+}
+.path-select .inline-path {
+  color: var(--dim);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.path-step-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.path-step-controls b {
+  margin-right: 4px;
+}
+.path-step-controls button {
+  padding: 3px;
+}
+.inspector-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  margin-top: 8px;
+  padding-top: 8px;
+}
+.inspector-actions button {
+  padding: 5px 6px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.key-selection .path-row-main > span {
   text-decoration: underline;
   text-decoration-color: var(--accent);
   text-underline-offset: 4px;
 }
-.value-selection .path-select > small {
+.value-selection .path-row-main > small {
   color: var(--accent);
+}
+@media (max-width: 1100px) {
+  .selection-bar {
+    margin-left: 18px;
+    margin-right: 18px;
+  }
+}
+@media (max-width: 800px) {
+  .selection-bar {
+    margin: 0 16px 10px;
+    flex-wrap: wrap;
+    gap: 5px;
+    min-height: 36px;
+  }
+  .path-breadcrumbs {
+    min-width: 100%;
+    font-size: 10px;
+  }
+  .selected-path-copy {
+    flex: 1;
+    max-width: none;
+    font-size: 10px;
+  }
+  .selection-hint {
+    font-size: 10px;
+    line-height: 1.5;
+  }
+  .workspace-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .workspace-actions .button {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .workspace-bar {
+    padding-top: 14px;
+    gap: 12px;
+    padding-bottom: 12px;
+  }
+  .workspace-title .eyebrow {
+    display: none;
+  }
+  .workspace-title h1 {
+    margin-top: 0;
+    font-size: 24px;
+  }
 }

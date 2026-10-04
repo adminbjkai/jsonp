@@ -1,4 +1,5 @@
 import type { Entry } from './json';
+import type { ExportKind } from './ird';
 export function download(content: BlobPart, name: string, type = 'application/json') {
   const url = URL.createObjectURL(new Blob([content], { type }));
   const anchor = document.createElement('a');
@@ -7,7 +8,7 @@ export function download(content: BlobPart, name: string, type = 'application/js
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-export async function exportMapping(entries: Entry[]) {
+export async function exportMapping(entries: Entry[], kind: ExportKind = 'samples') {
   const buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
     const worker = new Worker(new URL('./export.worker.ts', import.meta.url), { type: 'module' });
     const timer = setTimeout(() => {
@@ -27,13 +28,22 @@ export async function exportMapping(entries: Entry[]) {
       finish();
       reject(new Error('Export failed.'));
     };
-    worker.postMessage(
-      entries.map(({ path, parts, type, value }) => ({ path, parts, type, value })),
-    );
+    worker.postMessage({
+      kind,
+      entries:
+        kind === 'blank'
+          ? []
+          : entries.map(({ path, parts, type, value }) => ({
+              path,
+              parts,
+              type,
+              value: kind === 'samples' ? value : '',
+            })),
+    });
   });
   download(
     buffer,
-    `IRD_Mapping_${new Date().toISOString().slice(0, 10)}.xlsx`,
+    `${kind === 'samples' ? 'IRD_Mapping' : kind === 'blank' ? 'IRD_Blank_Template' : 'IRD_Mapping_Template'}_${new Date().toISOString().slice(0, 10)}.xlsx`,
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   );
 }

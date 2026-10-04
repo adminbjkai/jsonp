@@ -35,6 +35,9 @@ import { EXAMPLE, MAX_INPUT, jsonPath, type DocumentResult } from './json';
 import { download, exportMapping } from './export';
 import Explorer from './Explorer';
 import Output from './Output';
+import PathBar from './PathBar';
+import ExportDialog from './ExportDialog';
+import type { ExportKind } from './ird';
 const Graph = lazy(() => import('./Graph'));
 type Pane = 'input' | 'output' | 'paths' | 'graph';
 const DEFAULT_ORDER: Pane[] = ['input', 'output', 'paths'];
@@ -92,6 +95,7 @@ export default function App() {
   const [undo, setUndo] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null),
     fileRef = useRef<HTMLInputElement>(null);
+  const exportRef = useRef<HTMLDialogElement>(null);
   const helpRef = useRef<HTMLDialogElement>(null),
     dragPane = useRef<Pane | null>(null);
   const resizeCleanup = useRef<(() => void) | null>(null);
@@ -162,7 +166,6 @@ export default function App() {
       setActiveSection('value');
       const textarea = inputRef.current;
       if (textarea) {
-        textarea.focus({ preventScroll: true });
         textarea.setSelectionRange(entry.start, entry.end);
         textarea.scrollTop = Math.max(
           0,
@@ -207,14 +210,25 @@ export default function App() {
       notify('The file could not be read. Try opening it again.');
     }
   };
-  const exportExcel = async () => {
-    if (!entries.length || exporting) return;
+  const reveal = useCallback(
+    (path: string) => {
+      select(path);
+      setMobilePane('input');
+      setFocusedPane(null);
+      setCollapsed((prev) => prev.filter((pane) => pane !== 'input'));
+      requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
+    },
+    [select],
+  );
+  const exportExcel = async (kind: ExportKind) => {
+    if ((kind !== 'blank' && !entries.length) || exporting) return false;
     setExporting(true);
     try {
-      await exportMapping(entries);
-      notify('Excel mapping downloaded');
+      await exportMapping(entries, kind);
+      notify(kind === 'samples' ? 'Sample mapping downloaded' : 'IRD template downloaded');
+      return true;
     } catch {
-      notify('Export failed. Please try again.');
+      return false;
     } finally {
       setExporting(false);
     }
@@ -372,6 +386,12 @@ export default function App() {
             <Network size={15} /> Graph
           </button>
           <button
+            className="button export-workspace-button"
+            onClick={() => exportRef.current?.showModal()}
+          >
+            <FileSpreadsheet size={15} /> Export XLSX
+          </button>
+          <button
             className="icon-button"
             title="Reset layout"
             aria-label="Reset layout"
@@ -381,6 +401,7 @@ export default function App() {
           </button>
         </div>
       </section>
+      <PathBar entry={selected} select={select} reveal={reveal} copy={copy} />
       <input
         type="file"
         accept=".json,.txt,application/json"
@@ -480,8 +501,7 @@ export default function App() {
                       <button
                         title="Export mapping to Excel"
                         aria-label="Export mapping to Excel"
-                        disabled={!entries.length || exporting}
-                        onClick={() => void exportExcel()}
+                        onClick={() => exportRef.current?.showModal()}
                       >
                         <FileSpreadsheet size={15} />
                       </button>
@@ -631,6 +651,8 @@ export default function App() {
                     section={activeSection}
                     select={select}
                     copy={copy}
+                    reveal={reveal}
+                    value={selected ? input.slice(selected.start, selected.end) : ''}
                   />
                 )}
                 {pane === 'graph' && (
@@ -699,6 +721,12 @@ export default function App() {
           <span>One file · up to 5 MiB · processed locally</span>
         </div>
       )}
+      <ExportDialog
+        dialogRef={exportRef}
+        count={entries.length}
+        busy={exporting}
+        onExport={exportExcel}
+      />
       <dialog
         ref={helpRef}
         className="shortcuts-dialog"

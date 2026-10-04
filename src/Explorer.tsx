@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, useDeferredValue } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -9,21 +9,36 @@ import {
   ChevronsUpDown,
   Copy,
   SlidersHorizontal,
+  ArrowUp,
+  ArrowDown,
+  Crosshair,
+  CornerUpLeft,
 } from 'lucide-react';
-import { isContainer, type Entry, jsonPath, jsPath } from './json';
+import { isContainer, type Entry, jsonPath, jsPath, pointer } from './json';
 interface Props {
   entries: Entry[];
   active: string | null;
   section: 'key' | 'value';
   select: (path: string) => void;
   copy: (text: string, label?: string) => void;
+  reveal: (path: string) => void;
+  value: string;
 }
-const ROW_HEIGHT = 38;
-export default function Explorer({ entries, active, section, select, copy }: Props) {
+const ROW_HEIGHT = 58;
+type PathFormat = 'jsonpath' | 'pointer' | 'js';
+const displayPath = (entry: Entry, format: PathFormat) =>
+  format === 'jsonpath'
+    ? jsonPath(entry.parts)
+    : format === 'pointer'
+      ? entry.path
+      : jsPath(entry.parts);
+export default function Explorer({ entries, active, section, select, copy, reveal, value }: Props) {
   const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
+  const [pathFormat, setPathFormat] = useState<PathFormat>('jsonpath');
   const [tree, setTree] = useState(true);
   const [collapsed, setCollapsed] = useState(new Set<string>());
-  const [details, setDetails] = useState(true);
+  const [details, setDetails] = useState(() => window.matchMedia('(min-width: 801px)').matches);
   const [scrollTop, setScrollTop] = useState(0);
   const [height, setHeight] = useState(400);
   const viewport = useRef<HTMLDivElement>(null);
@@ -32,16 +47,19 @@ export default function Explorer({ entries, active, section, select, copy }: Pro
     [entries, active],
   );
   const visible = useMemo(() => {
-    const q = query.toLowerCase().trim();
+    const q = deferredQuery.toLowerCase().trim();
     let hiddenDepth = Infinity;
     return entries.filter((entry) => {
-      if (q) return `${entry.path} ${entry.value} ${entry.type}`.toLowerCase().includes(q);
+      if (q)
+        return `${entry.path} ${jsonPath(entry.parts)} ${entry.value} ${entry.type}`
+          .toLowerCase()
+          .includes(q);
       if (!tree) return true;
       if (entry.parts.length > hiddenDepth) return false;
       hiddenDepth = collapsed.has(entry.path) ? entry.parts.length : Infinity;
       return true;
     });
-  }, [entries, query, tree, collapsed]);
+  }, [entries, deferredQuery, tree, collapsed]);
   useEffect(() => {
     setScrollTop(0);
     if (viewport.current) viewport.current.scrollTop = 0;
@@ -60,7 +78,26 @@ export default function Explorer({ entries, active, section, select, copy }: Pro
       if (top < el.scrollTop || top + ROW_HEIGHT > el.scrollTop + el.clientHeight)
         el.scrollTop = Math.max(0, top - el.clientHeight / 2);
     }
-  }, [active, visible]);
+  }, [active, visible, height]);
+  const openParents = () => {
+    if (!selected) return;
+    setCollapsed((prev) => {
+      const parents = selected.parts.map((_, index) => pointer(selected.parts.slice(0, index)));
+      if (!parents.some((path) => prev.has(path))) return prev;
+      const next = new Set(prev);
+      parents.forEach((path) => next.delete(path));
+      return next;
+    });
+  };
+  useEffect(openParents, [selected]);
+  const activeIndex = visible.findLastIndex((entry) => entry.path === active);
+  const move = (index: number) => {
+    const entry = visible[index];
+    if (entry) {
+      select(entry.path);
+      viewport.current?.focus({ preventScroll: true });
+    }
+  };
   const start = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - 6);
   const end = Math.min(visible.length, Math.ceil((scrollTop + height) / ROW_HEIGHT) + 6);
   return (
@@ -101,8 +138,61 @@ export default function Explorer({ entries, active, section, select, copy }: Pro
           <SlidersHorizontal size={16} />
         </button>
       </div>
+      <div className="path-display-toolbar">
+        <label>
+          Paths{' '}
+          <select
+            aria-label="Path display format"
+            value={pathFormat}
+            onChange={(event) => setPathFormat(event.target.value as PathFormat)}
+          >
+            <option value="jsonpath">JSONPath</option>
+            <option value="pointer">JSON Pointer</option>
+            <option value="js">JavaScript</option>
+          </select>
+        </label>
+        <span>
+          {deferredQuery !== query
+            ? 'Searching…'
+            : `${visible.length.toLocaleString()} ${query ? 'matches' : 'visible'}`}
+        </span>
+        {query && (
+          <button aria-label="Clear path search" onClick={() => setQuery('')}>
+            Clear
+          </button>
+        )}
+      </div>
       <div
         className="explorer-scroll"
+        role="region"
+        aria-label="Path navigation"
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (
+            (event.ctrlKey || event.metaKey) &&
+            !event.shiftKey &&
+            event.key.toLowerCase() === 'c' &&
+            selected
+          ) {
+            event.preventDefault();
+            copy(displayPath(selected, pathFormat), 'Path copied');
+            return;
+          }
+          const next =
+            event.key === 'ArrowDown'
+              ? Math.min(visible.length - 1, activeIndex + 1)
+              : event.key === 'ArrowUp'
+                ? Math.max(0, activeIndex < 0 ? visible.length - 1 : activeIndex - 1)
+                : event.key === 'Home'
+                  ? 0
+                  : event.key === 'End'
+                    ? visible.length - 1
+                    : null;
+          if (next !== null && !event.ctrlKey && !event.metaKey) {
+            event.preventDefault();
+            move(next);
+          }
+        }}
         ref={viewport}
         onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
       >
@@ -149,19 +239,31 @@ export default function Explorer({ entries, active, section, select, copy }: Pro
                 <button
                   className="path-select"
                   onClick={() => select(entry.path)}
-                  onDoubleClick={() => copy(entry.path, 'Pointer copied')}
+                  onDoubleClick={() => copy(displayPath(entry, pathFormat), 'Path copied')}
+                  aria-label={`${tree && !query ? (entry.parts.at(-1) ?? 'document') : entry.path || 'document'} ${entry.value}`}
                   title={entry.path || 'Root (empty pointer)'}
                 >
-                  <span>
-                    {tree && !query ? (entry.parts.at(-1) ?? 'document') : entry.path || 'document'}
+                  <span className="path-row-content">
+                    <span className="path-row-main">
+                      <span>
+                        {tree && !query
+                          ? entry.parts.at(-1) === ''
+                            ? '\"\"'
+                            : (entry.parts.at(-1) ?? 'document')
+                          : entry.path || 'document'}
+                      </span>
+                      <small className={`value-${entry.type}`}>{entry.value}</small>
+                    </span>
+                    <code className="inline-path" title={displayPath(entry, pathFormat)}>
+                      {displayPath(entry, pathFormat) || '(empty string)'}
+                    </code>
                   </span>
-                  <small className={`value-${entry.type}`}>{entry.value}</small>
                 </button>
                 <button
                   className="row-copy"
-                  aria-label={`Copy pointer ${entry.path || 'root'}`}
-                  title="Copy JSON Pointer"
-                  onClick={() => copy(entry.path, 'Pointer copied')}
+                  aria-label={`Copy ${pathFormat} ${entry.path || 'root'}`}
+                  title={`Copy ${pathFormat === 'jsonpath' ? 'JSONPath' : pathFormat === 'pointer' ? 'JSON Pointer' : 'JavaScript path'}`}
+                  onClick={() => copy(displayPath(entry, pathFormat), 'Path copied')}
                 >
                   <Copy size={13} />
                 </button>
@@ -184,7 +286,25 @@ export default function Explorer({ entries, active, section, select, copy }: Pro
         <div className="path-inspector">
           <div className="inspector-heading">
             <span>SELECTED VALUE</span>
-            <b>{selected?.type ?? '—'}</b>
+            <div className="path-step-controls">
+              <b>{selected?.type ?? '—'}</b>
+              <button
+                aria-label="Previous value"
+                title="Previous value (↑)"
+                disabled={activeIndex <= 0}
+                onClick={() => move(activeIndex - 1)}
+              >
+                <ArrowUp size={13} />
+              </button>
+              <button
+                aria-label="Next value"
+                title="Next value (↓)"
+                disabled={!visible.length || activeIndex >= visible.length - 1}
+                onClick={() => move(activeIndex + 1)}
+              >
+                <ArrowDown size={13} />
+              </button>
+            </div>
           </div>
           {selected ? (
             [
@@ -205,7 +325,32 @@ export default function Explorer({ entries, active, section, select, copy }: Pro
               </div>
             ))
           ) : (
-            <p>Select a value to copy its references.</p>
+            <p>Select a value to copy its references. Use ↑ / ↓ to move through results.</p>
+          )}
+          {selected && (
+            <div className="inspector-actions">
+              <button
+                title="Copy selected value as JSON"
+                onClick={() => copy(value, 'Value copied')}
+              >
+                <Copy size={13} /> Copy value
+              </button>
+              <button onClick={() => reveal(selected.path)}>
+                <CornerUpLeft size={13} /> Source
+              </button>
+              {activeIndex < 0 && (
+                <button
+                  aria-label="Reveal selected path"
+                  title="Clear search and expand parents"
+                  onClick={() => {
+                    setQuery('');
+                    openParents();
+                  }}
+                >
+                  <Crosshair size={13} /> Reveal
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}

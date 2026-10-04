@@ -8,9 +8,9 @@ A private JSON workspace at **[jsonp.bjk.ai](https://jsonp.bjk.ai)**. Format a d
 
 - **Source:** live validation, file import or drop, line wrapping, format in place, clear, and undo the last replacement.
 - **Formatted:** syntax colors and line numbers, 2- or 4-space indentation, compact output, copy, and JSON download. Formatting preserves exact number tokens, negative zero, exponents, string escapes, key order, and duplicate keys.
-- **Explorer:** search keys, values, or types; switch between tree and list; expand or collapse branches; select a value to highlight its source and formatted lines. Copy JSON Pointer, JSONPath, or JavaScript property references. Root JSON Pointer is the empty string; `/` identifies an empty property name.
+- **Explorer:** search keys, values, or types; switch between tree and list; expand or collapse branches; select a value to highlight its source and formatted lines. Full paths appear beneath each field. Choose JSONPath, JSON Pointer, or JavaScript display; the visible copy buttons use that format. Click breadcrumbs to select a parent, use previous/next or arrow keys to move through results, copy exact values, and jump directly to the source. Long selected references wrap instead of truncating. Root JSON Pointer is the empty string; `/` identifies an empty property name.
 - **Graph:** connected container cards with scalar values and color swatches, zoom, pan, fit, manual card positioning, and selection linked to the source. Focus the graph to give it the full workspace.
-- **Excel mapping:** download an `.xlsx` workbook with levels, field names, exact sample values, types, references, and the existing requirement/mapping/business-rule/description columns. Rows retain document order, and numeric samples remain text to avoid spreadsheet rounding.
+- **Export XLSX:** choose a clean IRD from your JSON structure, a blank IRD for any interface, or the original mapping export with samples. Clean templates have no sample values; the original export retains exact sample numbers as text.
 
 Drag pane headers to reorder, drag dividers to resize, and collapse or focus individual panes. Focused dividers also accept arrow keys. Reset layout restores the default arrangement. On phones, switch panes using tabs. Dark and light themes and pane order persist on this device; document contents do not persist and are lost on reload. There are no AI requests, external fonts, or analytics.
 
@@ -26,7 +26,19 @@ Use Ctrl on Windows/Linux or ⌘ on macOS.
 | Ctrl/⌘ + /         | Show/hide shortcut help       |
 | Escape             | Close help or exit pane focus |
 
-Double-click an explorer value to copy its JSON Pointer.
+When the explorer is focused, ↑/↓ and Home/End navigate visible results; Ctrl/⌘ + C copies the selected path in the chosen format. Double-click an explorer value to copy that path. Selecting a value preserves explorer focus; **Go to source** opens and focuses the editor, including on mobile.
+
+### IRD workbooks
+
+Open **Export XLSX** from the workspace toolbar or the explorer’s Excel button.
+
+![IRD export choices](docs/ird-export.png)
+
+- **IRD mapping template** is the default for valid JSON. It uses source fields, paths, and observed data types, with repeated array records combined into reusable `[*]` paths. Nonempty objects are represented by their child fields; arrays and empty containers remain available as mappings. Primitive roots use `$`. No sample values are sent to the template export worker or included in the workbook.
+- **Blank IRD template** works even without valid JSON. It contains 30 empty, editable mapping rows.
+- **Mapping with samples** retains the original `Data_Mapping_IRD` sheet and its existing columns and per-value paths.
+
+Both clean templates contain **Overview**, **Field Mapping**, and **Instructions** sheets. Mapping columns cover source field/path/type, target field/path/type, requiredness, cardinality, transformations/business rules, defaults, validation constraints, and descriptions. Those business decisions stay blank. Types are observed from the provided document, not a guaranteed schema; confirm them against your source contract. This is a general-purpose IRD layout you can adapt to your organization. The mapping sheet has column widths and filters and is fully editable.
 
 ### Document limits
 
@@ -62,16 +74,18 @@ TEST_URL=https://jsonp.bjk.ai npm run test:e2e
 
 ## Code map
 
-| File                 | Responsibility                                                              |
-| -------------------- | --------------------------------------------------------------------------- |
-| `src/App.tsx`        | Workspace controls, worker lifecycle, source selection, and layout          |
-| `src/json.ts`        | Lossless formatting, typed source ranges, path references, and mapping rows |
-| `src/json.worker.ts` | Background processing entrypoint                                            |
-| `src/Explorer.tsx`   | Virtualized searchable tree/list and selected references                    |
-| `src/Output.tsx`     | Virtualized syntax-colored output and line highlighting                     |
-| `src/Graph.tsx`      | Lazy-loaded linear grouping and height-aware tree layout                    |
-| `src/export.ts`      | JSON download and lazy-loaded Excel export                                  |
-| `src/index.css`      | Themes, desktop/mobile layouts, and reduced-motion styling                  |
+| File                                    | Responsibility                                                          |
+| --------------------------------------- | ----------------------------------------------------------------------- |
+| `src/App.tsx`                           | Workspace state, worker lifecycle, source selection, and layout         |
+| `src/json.ts`, `src/json.worker.ts`     | Lossless formatting, typed ranges, and background processing            |
+| `src/Explorer.tsx`                      | Searchable virtualized tree/list, inline paths, and keyboard navigation |
+| `src/PathBar.tsx`                       | Parent breadcrumbs, current-path copy, and source reveal                |
+| `src/Output.tsx`                        | Virtualized syntax-colored output and line highlighting                 |
+| `src/Graph.tsx`                         | Lazy-loaded graph and height-aware layout                               |
+| `src/ExportDialog.tsx`                  | Workbook choices and export feedback                                    |
+| `src/ird.ts`                            | Sample-free template fields, reusable paths, overview, and instructions |
+| `src/export.ts`, `src/export.worker.ts` | Downloads and background XLSX generation                                |
+| `src/index.css`                         | Themes, responsive layouts, and reduced-motion styling                  |
 
 SheetJS 0.20.3 is vendored from its [official distribution](https://docs.sheetjs.com/docs/getting-started/installation/nodejs/) because the npm registry package is outdated. Its upstream license is included in the tarball. Graph and Excel code load only when used.
 

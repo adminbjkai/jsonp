@@ -32,8 +32,10 @@ test('formats accurately, selects escaped paths, searches, exports, and handles 
   expect(json.suggestedFilename()).toBe('formatted.json');
   const { readFile } = await import('node:fs/promises');
   expect(await readFile((await json.path())!, 'utf8')).toContain('9007199254740993');
-  const excelDownload = page.waitForEvent('download');
   await page.getByLabel('Export mapping to Excel', { exact: true }).click();
+  await page.getByRole('radio', { name: /^Mapping with samples/ }).check();
+  const excelDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download XLSX', exact: true }).click();
   const excel = await excelDownload;
   const workbook = read(await readFile((await excel.path())!), { type: 'buffer' });
   expect(workbook.SheetNames).toEqual(['Data_Mapping_IRD']);
@@ -164,6 +166,17 @@ test('desktop and mobile themes meet accessibility checks', async ({ page }) => 
         nodes: violation.nodes.map((node) => node.target),
       })),
     ).toEqual([]);
+    await page.getByRole('button', { name: 'Export XLSX', exact: true }).click();
+    const modal = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      .analyze();
+    expect(
+      modal.violations.map((violation) => ({
+        id: violation.id,
+        nodes: violation.nodes.map((node) => node.target),
+      })),
+    ).toEqual([]);
+    await page.getByRole('button', { name: 'Close export', exact: true }).click();
   }
   await page.getByRole('button', { name: 'Graph', exact: true }).click();
   await page.getByLabel('Focus Graph', { exact: true }).click();
@@ -188,4 +201,109 @@ test('desktop and mobile themes meet accessibility checks', async ({ page }) => 
       nodes: violation.nodes.map((node) => node.target),
     })),
   ).toEqual([]);
+});
+
+test('clean and blank IRD workbooks omit sample data and keep the sample export separate', async ({
+  page,
+}) => {
+  const { readFile } = await import('node:fs/promises');
+  const { utils } = await import('xlsx');
+  await page.goto('/');
+  await page
+    .getByLabel('JSON source')
+    .fill(
+      '{"crew":[{"name":"SAMPLE_SECRET_ONE","score":123},{"name":"SAMPLE_SECRET_TWO","score":456}]}',
+    );
+  await expect(page.getByText('8 values', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Export XLSX', exact: true }).click();
+  await expect(page.getByRole('radio', { name: /^IRD mapping template/ })).toBeChecked();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download XLSX', exact: true }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/^IRD_Mapping_Template_/);
+  const workbook = read(await readFile((await file.path())!), { type: 'buffer' });
+  expect(workbook.SheetNames).toEqual(['Overview', 'Field Mapping', 'Instructions']);
+  expect(JSON.stringify(workbook.Sheets)).not.toContain('SAMPLE_SECRET');
+  const rows = utils.sheet_to_json<Record<string, string>>(workbook.Sheets['Field Mapping']);
+  expect(rows.map((row) => row['Source JSONPath'])).toEqual([
+    '$.crew',
+    '$.crew[*].name',
+    '$.crew[*].score',
+  ]);
+  expect(rows[0]['Target Field / Path']).toBe('');
+  expect(workbook.Sheets['Field Mapping']['!autofilter']).toBeDefined();
+  expect(workbook.Sheets['Field Mapping'].A1.v).toBe('Mapping ID');
+  await page.getByLabel('Clear source', { exact: true }).click();
+  await expect(page.getByText('Empty document', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Export XLSX', exact: true }).click();
+  await expect(page.getByRole('radio', { name: /^IRD mapping template/ })).toBeDisabled();
+  await expect(page.getByRole('radio', { name: /^Blank IRD template/ })).toBeChecked();
+  const blankDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download XLSX', exact: true }).click();
+  const blankFile = await blankDownload;
+  expect(blankFile.suggestedFilename()).toMatch(/^IRD_Blank_Template_/);
+  const blank = read(await readFile((await blankFile.path())!), { type: 'buffer' });
+  expect(blank.Sheets['Field Mapping']['!ref']).toBe('A1:L31');
+  expect(blank.Sheets['Field Mapping'].C2.v).toBe('');
+});
+
+test('inline paths, breadcrumbs, filtered navigation, and source reveal work', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto('/');
+  await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+  await expect(page.locator('.inline-path').filter({ hasText: '$.settings.theme' })).toBeVisible();
+  await page.getByRole('button', { name: 'theme #b5d68b', exact: true }).click();
+  await expect(page.locator('.selected-path-copy')).toContainText('$.settings.theme');
+  await page.getByLabel('Copy current JSONPath', { exact: true }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('$.settings.theme');
+  await page
+    .getByRole('navigation', { name: 'Selected value ancestors' })
+    .getByRole('button', { name: 'settings', exact: true })
+    .click();
+  await expect(page.locator('.selected-path-copy')).toContainText('$.settings');
+  await page.getByLabel('Search paths and values').fill('$.crew[0].name');
+  await expect(page.getByRole('listitem')).toHaveCount(1);
+  await page.getByRole('button', { name: '/crew/0/name Alex', exact: true }).click();
+  await page.getByRole('button', { name: 'Copy value', exact: true }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('"Alex"');
+  await page.getByLabel('Path display format').selectOption('pointer');
+  await expect(page.locator('.inline-path')).toHaveText('/crew/0/name');
+  await page.getByLabel('Clear path search', { exact: true }).click();
+  await page.getByLabel('Next value', { exact: true }).click();
+  await expect(page.locator('.selected-path-copy')).toContainText('$.crew[0].role');
+  await page.getByLabel('Path navigation', { exact: true }).press('ArrowUp');
+  await expect(page.locator('.selected-path-copy')).toContainText('$.crew[0].name');
+  await page.getByLabel('Path navigation', { exact: true }).press('Control+c');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('/crew/0/name');
+  await page.getByLabel('Path navigation', { exact: true }).press('Control+Shift+c');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('\"Alex\"');
+  await page.getByRole('button', { name: 'Go to source', exact: true }).click();
+  await expect(page.getByLabel('JSON source')).toBeFocused();
+  const range = await page
+    .getByLabel('JSON source')
+    .evaluate((el: HTMLTextAreaElement) => el.value.slice(el.selectionStart, el.selectionEnd));
+  expect(range).toBe('"Alex"');
+  await page.getByLabel('Path navigation', { exact: true }).press('End');
+  await expect(page.locator('.selected-path-copy')).toContainText('$.nextLaunch');
+  await page.getByLabel('Path navigation', { exact: true }).press('Home');
+  await expect(page.locator('.selected-path-copy code')).toHaveText('$');
+});
+
+test('mobile source jump opens the editor from the explorer', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+  await page
+    .getByRole('navigation', { name: 'Workspace panes' })
+    .getByRole('button', { name: 'Explorer' })
+    .click();
+  await page.getByLabel('Search paths and values').fill('refreshInterval');
+  await page.getByRole('button', { name: '/settings/refreshInterval 30', exact: true }).click();
+  await expect(page.locator('.selected-path-copy')).toContainText('$.settings.refreshInterval');
+  await page.getByRole('button', { name: 'Go to source', exact: true }).click();
+  await expect(page.getByLabel('JSON source')).toBeVisible();
+  await expect(page.getByLabel('JSON source')).toBeFocused();
 });
