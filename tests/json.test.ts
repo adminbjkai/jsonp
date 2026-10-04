@@ -86,7 +86,7 @@ test('invalid JSON clears all derived data; whitespace remains empty', () => {
 test('caps resource usage with explicit errors rather than partial data', () => {
   assert.match(processJSON(' '.repeat(MAX_INPUT + 1) + '0').error!, /5 MiB/);
   assert.match(processJSON('['.repeat(258) + '0' + ']'.repeat(258)).error!, /256/);
-  assert.match(processJSON(JSON.stringify(Array(50_001).fill(0))).error!, /50,000/);
+  assert.match(processJSON(JSON.stringify(Array(300_001).fill(0))).error!, /300,000/);
 });
 
 test('supports four-space and compact output without changing data', () => {

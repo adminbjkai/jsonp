@@ -13,8 +13,11 @@ import {
   ArrowDown,
   Crosshair,
   CornerUpLeft,
+  Braces,
 } from 'lucide-react';
 import { isContainer, type Entry, jsonPath, jsPath, pointer } from './json';
+import { isQuery } from './query';
+import type { QueryReply } from './query.worker';
 interface Props {
   entries: Entry[];
   active: string | null;
@@ -23,6 +26,9 @@ interface Props {
   copy: (text: string, label?: string) => void;
   reveal: (path: string) => void;
   value: string;
+  query: string;
+  setQuery: (query: string) => void;
+  source: string;
 }
 const ROW_HEIGHT = 58;
 type PathFormat = 'jsonpath' | 'pointer' | 'js';
@@ -32,9 +38,55 @@ const displayPath = (entry: Entry, format: PathFormat) =>
     : format === 'pointer'
       ? entry.path
       : jsPath(entry.parts);
-export default function Explorer({ entries, active, section, select, copy, reveal, value }: Props) {
-  const [query, setQuery] = useState('');
+export default function Explorer({
+  entries,
+  active,
+  section,
+  select,
+  copy,
+  reveal,
+  value,
+  query,
+  setQuery,
+  source,
+}: Props) {
   const deferredQuery = useDeferredValue(query);
+  const queryMode = isQuery(deferredQuery);
+  const byPath = useMemo(() => new Map(entries.map((entry) => [entry.path, entry])), [entries]);
+  // A search that starts with $ runs as a JSONPath query in a worker, stopped if it runs long.
+  const [reply, setReply] = useState<(QueryReply & { expression: string }) | null>(null);
+  const expression = deferredQuery.trim();
+  useEffect(() => {
+    if (!queryMode || !entries.length) return setReply(null);
+    let worker: Worker | undefined;
+    const finish = (result: QueryReply) => {
+      clearTimeout(limit);
+      worker?.terminate();
+      setReply({ ...result, expression });
+    };
+    const start = setTimeout(() => {
+      worker = new Worker(new URL('./query.worker.ts', import.meta.url), { type: 'module' });
+      worker.onmessage = (event: MessageEvent<QueryReply>) => finish(event.data);
+      worker.onerror = () => finish({ error: 'The query could not run.', paths: [], json: '' });
+      worker.postMessage({ source, expression });
+    }, 120);
+    const limit = setTimeout(
+      () =>
+        finish({
+          error: 'The query took too long and was stopped. Simplify the filter or pattern.',
+          paths: [],
+          json: '',
+        }),
+      5000,
+    );
+    return () => {
+      clearTimeout(start);
+      clearTimeout(limit);
+      worker?.terminate();
+    };
+  }, [queryMode, expression, source, entries]);
+  const queried = queryMode ? reply : null;
+  const queryPending = queryMode && reply?.expression !== expression;
   const [pathFormat, setPathFormat] = useState<PathFormat>('jsonpath');
   const [tree, setTree] = useState(true);
   const [collapsed, setCollapsed] = useState(new Set<string>());
@@ -47,6 +99,10 @@ export default function Explorer({ entries, active, section, select, copy, revea
     [entries, active],
   );
   const visible = useMemo(() => {
+    if (queryMode)
+      return (queried?.paths ?? [])
+        .map((path) => byPath.get(path))
+        .filter((entry) => entry !== undefined);
     const q = deferredQuery.toLowerCase().trim();
     let hiddenDepth = Infinity;
     return entries.filter((entry) => {
@@ -59,7 +115,7 @@ export default function Explorer({ entries, active, section, select, copy, revea
       hiddenDepth = collapsed.has(entry.path) ? entry.parts.length : Infinity;
       return true;
     });
-  }, [entries, deferredQuery, tree, collapsed]);
+  }, [entries, deferredQuery, tree, collapsed, queryMode, queried, byPath]);
   useEffect(() => {
     setScrollTop(0);
     if (viewport.current) viewport.current.scrollTop = 0;
@@ -106,8 +162,9 @@ export default function Explorer({ entries, active, section, select, copy, revea
         <label className="search">
           <Search size={14} />
           <input
+            id="explorer-search"
             aria-label="Search paths and values"
-            placeholder="Find a key or value…"
+            placeholder="Find a key or value, or type $ to query…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -151,11 +208,24 @@ export default function Explorer({ entries, active, section, select, copy, revea
             <option value="js">JavaScript</option>
           </select>
         </label>
-        <span>
+        <span className={queried?.error ? 'query-error' : undefined} role="status">
           {deferredQuery !== query
             ? 'Searching…'
-            : `${visible.length.toLocaleString()} ${query ? 'matches' : 'visible'}`}
+            : queryPending
+              ? 'Running query…'
+              : queried?.error
+                ? queried.error
+                : `${visible.length.toLocaleString()} ${queried ? 'query results' : query ? 'matches' : 'visible'}`}
         </span>
+        {queried && !queryPending && !queried.error && queried.paths.length > 0 && (
+          <button
+            aria-label="Copy query results as JSON"
+            title="Copy results as a JSON array"
+            onClick={() => copy(queried.json, 'Query results copied')}
+          >
+            <Braces size={12} /> Copy
+          </button>
+        )}
         {query && (
           <button aria-label="Clear path search" onClick={() => setQuery('')}>
             Clear

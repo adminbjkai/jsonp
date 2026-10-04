@@ -1,5 +1,38 @@
 # Changelog
 
+## 2.0.0 — 2026-10-03
+
+### Easier to learn
+
+- Added a command palette (Ctrl/⌘ + K) that lists every action by name, with shortcuts. Actions that don't apply yet stay visible but dimmed.
+- Grouped the toolbar into **Open**, **Tools**, **Convert**, **Compare**, **Table**, **Graph**, and **Export**.
+- Added a dismissible getting-started banner on the first visit, and a Help dialog with a quick start, a description of each pane, clickable JSONPath examples, and shortcuts.
+- Invalid JSON now reports its line, column, and a plain-language cause in every browser. **Go to error** selects the problem in Source, and the gutter marks the error line.
+- An empty Source offers Open, Paste, and Try the sample.
+
+### New capabilities
+
+- **Repair:** one-click, token-level repair of comments, trailing and missing commas, single and smart quotes, unquoted keys, Python literals, NaN/Infinity/undefined, hex and malformed numbers, invalid escapes, control characters, JSONP and JavaScript wrappers, Markdown fences, unclosed brackets and strings, and NDJSON. The fixes are listed before you apply them, and exact numbers survive.
+- **JSONPath queries** in the explorer search: wildcards, recursive descent, slices, unions, and filters. Results can be copied as a JSON array.
+- **Transforms:** sort keys, remove nulls or empty values, minify, keep only the selection, escape as a JSON string, and unescape. All are lossless, with multi-step undo.
+- **Convert** a whole document or a selection to TypeScript, JSON Schema 2020-12, YAML, or CSV, with preview, copy, and download.
+- **Compare** two documents structurally, with an ignore-array-order option and a copyable report. Click a difference to select it.
+- **Table** pane for arrays of records: sorting, filtering, virtualization, and selection linked to every other pane.
+- **Insights:** type counts, depth, common keys, largest arrays, and the longest string.
+- **CSV and TSV import** with exact numbers, delimiter detection, and quoted fields.
+- **Share links** that keep the compressed document in the URL fragment, which is never sent to a server.
+- An optional **saved draft** on this device, off by default.
+- Source editor line numbers and Tab/Shift+Tab indentation. Ctrl/⌘ + F focuses the explorer search, except inside Source, where the browser's find still works.
+- Raised the document limit from 50,000 to 300,000 values. A document that hits a limit now shows **Not processed** instead of **Invalid JSON**.
+- Transforms keep the original spelling of string escapes, such as `\u00e9` and `\/`. Undo is multi-step, and Redo keeps anything typed since the last change.
+- JSONPath filters compare numbers above 2^53 exactly. Queries run in a worker and stop after 5 seconds.
+- Repair keeps stray backslashes in Windows paths and regular expressions.
+
+### Verified
+
+- 75 core tests and 17 browser scenarios, including accessibility checks of every new dialog, the menus, and the table.
+- An independent adversarial pass covered 5 MiB documents, 20,000-row tables, deep nesting, `__proto__` keys, damaged share links, compression bombs, CSV formula injection, and ReDoS queries. It also checked that no request goes to any other origin. Every defect it found is fixed and covered by a regression test.
+
 ## 1.2.0 — 2026-10-03
 
 - Added a known-target worked example to Export XLSX with paired target and completed IRD downloads, available independently of the editor.

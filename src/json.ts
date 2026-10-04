@@ -1,3 +1,5 @@
+import { locateError, type SyntaxProblem } from './locate';
+import type { RepairResult } from './repair';
 /** Lossless JSON formatting and source ranges. Numbers and strings keep their exact tokens. */
 export type ValueType = 'object' | 'array' | 'string' | 'number' | 'boolean' | 'null';
 export interface Entry {
@@ -20,9 +22,13 @@ export interface DocumentResult {
   entries: Entry[];
   warnings: string[];
   error: string | null;
+  /** Location of a syntax error, when the document isn't valid JSON. */
+  problem?: SyntaxProblem;
+  /** A repaired copy of invalid input, when one can be made. */
+  repair?: RepairResult;
 }
 export const MAX_INPUT = 5 * 1024 * 1024;
-export const MAX_ENTRIES = 50_000;
+export const MAX_ENTRIES = 300_000;
 export type MappingEntry = Pick<Entry, 'path' | 'parts' | 'type' | 'value'>;
 export const isContainer = (entry: Pick<Entry, 'type'>) =>
   entry.type === 'object' || entry.type === 'array';
@@ -69,7 +75,16 @@ export function processJSON(source: string, indent = 2): DocumentResult {
     if (source.length > MAX_INPUT)
       throw new Error('Document exceeds the 5 MiB character limit. Open a smaller JSON file.');
     // Validation only: never serialize this parsed value, which can round numbers.
-    JSON.parse(source);
+    try {
+      JSON.parse(source);
+    } catch {
+      const problem = locateError(source);
+      return {
+        ...empty,
+        problem,
+        error: `Line ${problem.line + 1}, column ${problem.column}: ${problem.message}`,
+      };
+    }
     const tokens = source.matchAll(
       /"(?:\\[\s\S]|[^"\\])*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\],:]/g,
     );
@@ -128,7 +143,7 @@ export function processJSON(source: string, indent = 2): DocumentResult {
       } else {
         if (entries.length >= MAX_ENTRIES)
           throw new Error(
-            'This document has more than 50,000 values. Split it into smaller documents.',
+            'This document has more than 300,000 values. Split it into smaller documents.',
           );
         const part = frame ? (frame.entry.type === 'array' ? frame.index++ : frame.key!) : null;
         const parts = frame ? [...frame.entry.parts, part!] : [];
