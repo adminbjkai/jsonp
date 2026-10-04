@@ -1,13 +1,9 @@
-/* Graph view. Overrides the legacy dark-only graph rules in index.css so the graph follows the theme. */
-:root .graph-area {
-  --text: inherit;
-  --dim: inherit;
-  --muted: inherit;
-  --string: inherit;
-  --number: inherit;
-  --boolean: inherit;
+/* Graph view: cards and edges follow the theme tokens. */
+.graph-area {
+  flex: 1;
+  min-height: 0;
   --graph-edge: color-mix(in srgb, var(--dim) 55%, transparent);
-  --graph-match: var(--number);
+  --graph-match: var(--marker-edge);
   background: var(--bg);
 }
 .graph-canvas {
@@ -17,7 +13,7 @@
   outline: none;
 }
 .graph-canvas:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--accent);
+  box-shadow: inset 0 0 0 2px var(--line-strong);
 }
 
 /* Cards: sizes must match CARD_WIDTH / cardHeight() in Graph.tsx. */
@@ -25,18 +21,18 @@
   box-sizing: border-box;
   width: 260px;
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   color: var(--text);
   background: var(--panel);
   overflow: hidden;
-  box-shadow: 0 4px 16px #0000001f;
+  box-shadow: 0 2px 10px rgba(2, 6, 14, 0.18);
   transition:
     opacity 0.15s,
     border-color 0.15s;
 }
 .graph-area .graph-card.selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+  border-color: var(--marker-edge);
+  box-shadow: 0 0 0 1px var(--marker-edge);
 }
 .graph-area .graph-card.match {
   border-color: var(--graph-match);
@@ -94,7 +90,7 @@
   display: flex;
   align-items: center;
   height: 28px;
-  font: 10px monospace;
+  font: 12px var(--font-code);
 }
 .graph-row:hover,
 .graph-row.active {
@@ -158,14 +154,14 @@
 /* Handles, edges, background, minimap */
 .graph-area .react-flow__handle {
   border-color: var(--panel) !important;
-  background: var(--accent) !important;
+  background: var(--marker-edge) !important;
 }
 .graph-area .react-flow__edge-path {
   stroke: var(--graph-edge);
   stroke-width: 1.5;
 }
 .graph-area .react-flow__edge.graph-edge-active .react-flow__edge-path {
-  stroke: var(--accent);
+  stroke: var(--marker-edge);
   stroke-width: 2;
 }
 .graph-area .react-flow__edge {
@@ -176,7 +172,7 @@
 }
 .graph-area .react-flow__edge-text {
   fill: var(--muted);
-  font: 9px monospace;
+  font: 11px var(--font-code);
 }
 .graph-area .react-flow__edge.graph-edge-active .react-flow__edge-text {
   fill: var(--accent);
@@ -248,15 +244,15 @@
   gap: 8px;
   max-width: 100%;
   padding: 5px 6px 5px 10px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text);
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 999px;
-  box-shadow: 0 4px 16px #0000001f;
+  box-shadow: 0 2px 10px rgba(2, 6, 14, 0.18);
 }
 .graph-chip span {
-  font-family: monospace;
+  font-family: var(--font-code);
   color: var(--accent);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -266,7 +262,7 @@
   flex-shrink: 0;
   padding: 3px 9px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12px;
   background: var(--raised);
 }
 .graph-note button {
@@ -309,7 +305,7 @@
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 9px;
-  box-shadow: 0 6px 22px #00000029;
+  box-shadow: var(--float);
 }
 .graph-dock button {
   flex-shrink: 0;
@@ -327,7 +323,7 @@
   background: var(--line);
 }
 .graph-dock-caret {
-  font-size: 9px;
+  font-size: 12px;
 }
 .graph-export-menu {
   position: absolute;
@@ -342,7 +338,7 @@
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 7px;
-  box-shadow: 0 6px 22px #00000033;
+  box-shadow: var(--float);
 }
 .graph-export-menu button {
   height: 30px;
@@ -354,4 +350,21 @@
 /* Cards are neither draggable nor selectable, but their buttons and links must stay clickable. */
 .graph-area .react-flow__node {
   pointer-events: all !important;
+}
+
+/* React Flow's own controls follow the theme. */
+.graph-area .react-flow__controls {
+  box-shadow: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.graph-area .react-flow__controls-button {
+  background: var(--panel);
+  border-color: var(--line);
+  color: var(--text);
+  fill: var(--text);
+}
+.graph-area .react-flow__controls-button:hover {
+  background: var(--raised);
 }

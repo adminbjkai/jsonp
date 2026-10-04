@@ -46,7 +46,7 @@ export default function Insights({
   return (
     <dialog
       ref={dialogRef}
-      className="shortcuts-dialog"
+      className="dialog"
       aria-labelledby="insights-title"
       onClick={(event) => {
         if (event.target === event.currentTarget) dialogRef.current?.close();

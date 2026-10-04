@@ -181,7 +181,7 @@ test('graph follows the light theme', async ({ page }) => {
   expect(colours.card).toBe(colours.panel);
   expect(colours.area).toBe(colours.bg);
   expect(colours.cardText).toBe(colours.text);
-  expect(colours.card).toBe('rgb(250, 251, 246)');
+  expect(colours.card).toBe('rgb(255, 255, 255)');
   expect(errors).toEqual([]);
 });
 

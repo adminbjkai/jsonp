@@ -31,7 +31,7 @@ export default function HelpDialog({
   return (
     <dialog
       ref={dialogRef}
-      className="shortcuts-dialog help-dialog"
+      className="dialog help-dialog"
       aria-labelledby="help-title"
       onClick={(event) => {
         if (event.target === event.currentTarget) close();

@@ -32,6 +32,18 @@ export const MAX_ENTRIES = 300_000;
 export type MappingEntry = Pick<Entry, 'path' | 'parts' | 'type' | 'value'>;
 export const isContainer = (entry: Pick<Entry, 'type'>) =>
   entry.type === 'object' || entry.type === 'array';
+/** The innermost entry whose key or value covers a source offset. Entries are in source order. */
+export function entryAtOffset(entries: Entry[], offset: number): Entry | undefined {
+  let low = 0,
+    high = entries.length;
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if (entries[mid].keyStart <= offset) low = mid + 1;
+    else high = mid;
+  }
+  for (let i = low - 1; i >= 0; i--) if (offset < entries[i].end) return entries[i];
+  return undefined;
+}
 export const pointer = (parts: (string | number)[]) =>
   parts.length
     ? '/' + parts.map((p) => String(p).replace(/~/g, '~0').replace(/\//g, '~1')).join('/')

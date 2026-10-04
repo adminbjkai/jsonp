@@ -227,3 +227,15 @@ test('a share link pasted into an open tab loads, and a bad saved mode falls bac
   await expect(source(page)).toHaveValue('{\n  "shared": true\n}');
   await expect(page).toHaveURL(/#format$/);
 });
+
+test.describe('system theme', () => {
+  test.use({ colorScheme: 'light' });
+  test('a first visit follows the system theme, and a saved choice wins', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await page.getByLabel('Use dark theme', { exact: true }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  });
+});

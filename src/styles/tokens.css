@@ -1,0 +1,98 @@
+/* Design tokens. "Marker on ink": a calm neutral workspace where one highlighter-amber mark shows
+   where you are (selection, search hits, changes, the error). Controls are monochrome ink. */
+:root {
+  color-scheme: dark;
+  --font-ui: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  --font-code:
+    'Red Hat Mono Variable', ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+
+  /* Surfaces */
+  --bg: #0d1119;
+  --panel: #121722;
+  --sunken: #0f141d;
+  --raised: #1a2130;
+  --line: #232b3b;
+  --line-strong: #364260;
+
+  /* Text */
+  --text: #e7ebf3;
+  --muted: #9aa5bb;
+  --dim: #8591a8;
+
+  /* Primary controls are ink: the text colour inverted. */
+  --ink: #e7ebf3;
+  --ink-text: #0d1119;
+  --ink-hover: #ffffff;
+
+  /* The marker. --accent is safe for text; --marker is the fill; --marker-edge outlines. */
+  --accent: #f6c945;
+  --marker: #f6c945;
+  --marker-ink: #1b1500;
+  --marker-edge: #f6c945;
+  --marker-wash: rgba(246, 201, 69, 0.14);
+  --selected: var(--marker-wash);
+  --accent-ink: var(--marker-ink);
+
+  /* Status */
+  --error: #ff8f7e;
+  --ok: #6fd3a0;
+
+  /* Syntax */
+  --key: #a8bdff;
+  --string: #8ad7a4;
+  --number: #f4a98b;
+  --boolean: #d3a8ff;
+  --null: var(--dim);
+  --guide: rgba(154, 165, 187, 0.16);
+
+  /* Shape and depth */
+  --radius: 10px;
+  --radius-sm: 7px;
+  --float: 0 18px 50px rgba(2, 6, 14, 0.55);
+  --scrim: rgba(4, 8, 16, 0.62);
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --quick: 0.14s;
+
+  --page: 14px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-synthesis: none;
+  -webkit-text-size-adjust: 100%;
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #edf0f5;
+  --panel: #ffffff;
+  --sunken: #f7f8fb;
+  --raised: #f1f3f8;
+  --line: #d9dee8;
+  --line-strong: #b3bccd;
+  --text: #111827;
+  --muted: #4a5568;
+  --dim: #5b6779;
+  --ink: #111827;
+  --ink-text: #ffffff;
+  --ink-hover: #263248;
+  --accent: #8a5a00;
+  --marker: #ffd84a;
+  --marker-ink: #1b1500;
+  --marker-edge: #c98f00;
+  --marker-wash: rgba(255, 200, 40, 0.3);
+  --error: #b42318;
+  --ok: #067647;
+  --key: #2b4bb5;
+  --string: #146c43;
+  --number: #a8430c;
+  --boolean: #7435c0;
+  --guide: rgba(17, 24, 39, 0.1);
+  --float: 0 18px 44px rgba(17, 24, 39, 0.18);
+  --scrim: rgba(17, 24, 39, 0.4);
+}
+@media (min-width: 1800px) {
+  :root {
+    --page: 20px;
+  }
+}

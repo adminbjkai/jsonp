@@ -44,7 +44,7 @@ export default function CommandPalette({
   return (
     <dialog
       ref={dialogRef}
-      className="shortcuts-dialog palette-dialog"
+      className="dialog palette-dialog"
       aria-label="Command palette"
       onClose={() => {
         setQuery('');

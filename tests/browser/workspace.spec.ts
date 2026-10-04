@@ -282,6 +282,9 @@ test('inline paths, breadcrumbs, filtered navigation, and source reveal work', a
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.goto('/');
   await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+  // Tree rows are one line; Show paths adds the path under each name.
+  await expect(page.locator('.inline-path')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Show paths', exact: true }).click();
   await expect(page.locator('.inline-path').filter({ hasText: '$.settings.theme' })).toBeVisible();
   await page.getByRole('button', { name: 'theme #b5d68b', exact: true }).click();
   await expect(page.locator('.selected-path-copy')).toContainText('$.settings.theme');

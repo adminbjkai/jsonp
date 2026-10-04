@@ -1,0 +1,8 @@
+@import '@fontsource-variable/schibsted-grotesk/wght.css';
+@import '@fontsource-variable/red-hat-mono/wght.css';
+@import './tokens.css';
+@import './base.css';
+@import './shell.css';
+@import './panes.css';
+@import './explorer.css';
+@import './dialogs.css';

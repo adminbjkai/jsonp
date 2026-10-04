@@ -14,10 +14,12 @@ import {
   Crosshair,
   CornerUpLeft,
   Braces,
+  X,
 } from 'lucide-react';
 import { isContainer, type Entry, jsonPath, jsPath, pointer } from '../lib/json';
 import { isQuery } from '../lib/query';
 import type { QueryReply } from '../workers/query.worker';
+import { save, saved } from '../state/prefs';
 interface Props {
   entries: Entry[];
   active: string | null;
@@ -32,7 +34,9 @@ interface Props {
   /** Reports the paths matched by the current search or query (null when not searching). */
   onMatches?: (paths: ReadonlySet<string> | null) => void;
 }
-const ROW_HEIGHT = 58;
+/** Tree rows are one line; search results add the path underneath. */
+const ROW_TREE = 30;
+const ROW_FLAT = 48;
 type PathFormat = 'jsonpath' | 'pointer' | 'js';
 const displayPath = (entry: Entry, format: PathFormat) =>
   format === 'jsonpath'
@@ -94,6 +98,13 @@ export default function Explorer({
   const queryPending = queryMode && reply?.expression !== expression;
   const [pathFormat, setPathFormat] = useState<PathFormat>('jsonpath');
   const [tree, setTree] = useState(true);
+  const nested = tree && !query;
+  // Search results always show each path; the tree can too, at the cost of taller rows.
+  const [showPaths, setShowPaths] = useState(
+    () => saved<boolean>('jsonp.showPaths', false) === true,
+  );
+  const inline = !nested || showPaths;
+  const ROW_HEIGHT = inline ? ROW_FLAT : ROW_TREE;
   const [collapsed, setCollapsed] = useState(new Set<string>());
   const [details, setDetails] = useState(() => window.matchMedia('(min-width: 801px)').matches);
   const [scrollTop, setScrollTop] = useState(0);
@@ -178,6 +189,11 @@ export default function Explorer({
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
+        {query && (
+          <button aria-label="Clear path search" title="Clear search" onClick={() => setQuery('')}>
+            <X size={15} />
+          </button>
+        )}
         <button
           title={tree ? 'Switch to list view' : 'Switch to tree view'}
           aria-label={tree ? 'Switch to list view' : 'Switch to tree view'}
@@ -204,19 +220,7 @@ export default function Explorer({
           <SlidersHorizontal size={16} />
         </button>
       </div>
-      <div className="path-display-toolbar">
-        <label>
-          Paths{' '}
-          <select
-            aria-label="Path display format"
-            value={pathFormat}
-            onChange={(event) => setPathFormat(event.target.value as PathFormat)}
-          >
-            <option value="jsonpath">JSONPath</option>
-            <option value="pointer">JSON Pointer</option>
-            <option value="js">JavaScript</option>
-          </select>
-        </label>
+      <div className="explorer-meta">
         <span className={queried?.error ? 'query-error' : undefined} role="status">
           {deferredQuery !== query
             ? 'Searching…'
@@ -235,11 +239,30 @@ export default function Explorer({
             <Braces size={12} /> Copy
           </button>
         )}
-        {query && (
-          <button aria-label="Clear path search" onClick={() => setQuery('')}>
-            Clear
+        {nested && (
+          <button
+            aria-pressed={showPaths}
+            title="Show each value's path under its name"
+            onClick={() => {
+              setShowPaths(!showPaths);
+              save('jsonp.showPaths', !showPaths);
+            }}
+          >
+            Show paths
           </button>
         )}
+        <label>
+          Paths
+          <select
+            aria-label="Path display format"
+            value={pathFormat}
+            onChange={(event) => setPathFormat(event.target.value as PathFormat)}
+          >
+            <option value="jsonpath">JSONPath</option>
+            <option value="pointer">JSON Pointer</option>
+            <option value="js">JavaScript</option>
+          </select>
+        </label>
       </div>
       <div
         className="explorer-scroll"
@@ -290,10 +313,10 @@ export default function Explorer({
                   position: 'absolute',
                   top: (start + index) * ROW_HEIGHT,
                   height: ROW_HEIGHT,
-                  paddingLeft: 10 + (tree && !query ? Math.min(entry.parts.length, 12) * 14 : 0),
+                  paddingLeft: 10 + (nested ? Math.min(entry.parts.length, 12) * 14 : 0),
                 }}
               >
-                {isContainer(entry) && tree && !query ? (
+                {isContainer(entry) && nested ? (
                   <button
                     className="tree-toggle"
                     aria-label={`${collapsed.has(entry.path) ? 'Expand' : 'Collapse'} ${entry.path || 'root'}`}
@@ -319,13 +342,13 @@ export default function Explorer({
                   className="path-select"
                   onClick={() => select(entry.path)}
                   onDoubleClick={() => copy(displayPath(entry, pathFormat), 'Path copied')}
-                  aria-label={`${tree && !query ? (entry.parts.at(-1) ?? 'document') : entry.path || 'document'} ${entry.value}`}
+                  aria-label={`${nested ? (entry.parts.at(-1) ?? 'document') : entry.path || 'document'} ${entry.value}`}
                   title={entry.path || 'Root (empty pointer)'}
                 >
                   <span className="path-row-content">
                     <span className="path-row-main">
                       <span>
-                        {tree && !query
+                        {nested
                           ? entry.parts.at(-1) === ''
                             ? '\"\"'
                             : (entry.parts.at(-1) ?? 'document')
@@ -333,9 +356,11 @@ export default function Explorer({
                       </span>
                       <small className={`value-${entry.type}`}>{entry.value}</small>
                     </span>
-                    <code className="inline-path" title={displayPath(entry, pathFormat)}>
-                      {displayPath(entry, pathFormat) || '(empty string)'}
-                    </code>
+                    {inline && (
+                      <code className="inline-path" title={displayPath(entry, pathFormat)}>
+                        {displayPath(entry, pathFormat) || '(empty string)'}
+                      </code>
+                    )}
                   </span>
                 </button>
                 <button
@@ -364,9 +389,9 @@ export default function Explorer({
       {details && (
         <div className="path-inspector">
           <div className="inspector-heading">
-            <span>SELECTED VALUE</span>
+            <span>Selected value</span>
             <div className="path-step-controls">
-              <b>{selected?.type ?? '—'}</b>
+              {selected && <b>{selected.type}</b>}
               <button
                 aria-label="Previous value"
                 title="Previous value (↑)"

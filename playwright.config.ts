@@ -4,7 +4,12 @@ export default defineConfig({
   timeout: 30_000,
   fullyParallel: true,
   workers: 2,
-  use: { baseURL: process.env.TEST_URL || 'http://127.0.0.1:3000', trace: 'retain-on-failure' },
+  // The app follows the system theme on a first visit; the suite starts from dark.
+  use: {
+    baseURL: process.env.TEST_URL || 'http://127.0.0.1:3000',
+    colorScheme: 'dark',
+    trace: 'retain-on-failure',
+  },
   webServer: process.env.TEST_URL
     ? undefined
     : {

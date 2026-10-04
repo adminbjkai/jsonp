@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Search, Sheet, Table2 } from 'lucide-react';
-import { isContainer, jsonPath, type Entry } from '../lib/json';
+import { jsonPath, type Entry } from '../lib/json';
 import { compareNumbers } from '../lib/tree';
 const ROW = 34;
 const MAX_COLUMNS = 60;

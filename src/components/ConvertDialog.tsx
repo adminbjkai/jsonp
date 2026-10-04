@@ -58,7 +58,7 @@ export default function ConvertDialog({
   return (
     <dialog
       ref={dialogRef}
-      className="shortcuts-dialog wide-dialog"
+      className="dialog wide-dialog"
       aria-labelledby="convert-title"
       onClick={(event) => {
         if (event.target === event.currentTarget) dialogRef.current?.close();

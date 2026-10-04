@@ -43,7 +43,7 @@ export default function ExportDialog({ dialogRef, count, busy, onExport }: Props
   ];
   return (
     <dialog
-      className="shortcuts-dialog export-dialog"
+      className="dialog export-dialog"
       ref={dialogRef}
       aria-labelledby="export-title"
       onClose={() => setError(false)}

@@ -1,6 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { processJSON, pointer, jsonPath, jsPath, mappingRows, MAX_INPUT } from '../src/lib/json';
+import {
+  processJSON,
+  pointer,
+  jsonPath,
+  jsPath,
+  mappingRows,
+  entryAtOffset,
+  MAX_INPUT,
+  EXAMPLE,
+} from '../src/lib/json';
 
 test('formats nested JSON with exact source and output ranges', () => {
   const source = '{"a": [1, {"b": true}], "empty": {}}';
@@ -120,4 +129,27 @@ test('formats varied documents consistently against native JSON semantics', () =
       assert.deepEqual(JSON.parse(result.output), value);
       assert.equal(processJSON(result.output, indent).output, result.output);
     }
+});
+
+test('entryAtOffset finds the same entry as scanning every entry', () => {
+  const documents = [
+    EXAMPLE,
+    JSON.stringify({ a: [1, { b: [] }, 'x'], c: { d: { e: null } }, '': [[], [[]]] }, null, 3),
+    '[1,2,[3,[4,{"k":"v"}]],"end"]',
+    '{"a":{"b":{"c":{"d":1}}},"z":[true,false]}',
+  ];
+  for (const source of documents) {
+    const { entries } = processJSON(source, 2);
+    assert.ok(entries.length > 0);
+    for (let offset = 0; offset <= source.length; offset++) {
+      let expected: (typeof entries)[number] | undefined;
+      for (const entry of entries)
+        if (offset >= entry.keyStart && offset < entry.end) expected = entry;
+      assert.equal(
+        entryAtOffset(entries, offset),
+        expected,
+        `offset ${offset} in ${source.slice(0, 30)}`,
+      );
+    }
+  }
 });

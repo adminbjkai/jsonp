@@ -66,7 +66,7 @@ export default function SchemaDialog({ dialogRef, source, tree, entryAt, select,
   return (
     <dialog
       ref={dialogRef}
-      className="shortcuts-dialog wide-dialog"
+      className="dialog wide-dialog"
       aria-labelledby="schema-title"
       onClick={(event) => {
         if (event.target === event.currentTarget) dialogRef.current?.close();
