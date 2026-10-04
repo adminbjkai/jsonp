@@ -68,7 +68,10 @@ export const EXAMPLE = `{
   "nextLaunch": null
 }`;
 
-export function processJSON(source: string, indent = 2): DocumentResult {
+/** Indentation: a number of spaces (0 = compact) or '\t' for tabs. */
+export type Indent = number | '\t';
+export function processJSON(source: string, indent: Indent = 2): DocumentResult {
+  const unit = typeof indent === 'string' ? indent : ' '.repeat(indent);
   const empty: DocumentResult = { output: '', entries: [], warnings: [], error: null };
   if (!source.trim()) return empty;
   try {
@@ -110,7 +113,7 @@ export function processJSON(source: string, indent = 2): DocumentResult {
       line += text.split('\n').length - 1;
     };
     const newline = () => {
-      if (indent) append('\n' + ' '.repeat(stack.length * indent));
+      if (unit) append('\n' + unit.repeat(stack.length));
     };
     for (const match of tokens) {
       const token = match[0],
@@ -119,7 +122,7 @@ export function processJSON(source: string, indent = 2): DocumentResult {
       if (token === ',' || token === ':') {
         append(token);
         if (token === ':') {
-          if (indent) append(' ');
+          if (unit) append(' ');
         } else {
           if (frame.entry.type === 'object') frame.expectKey = true;
           newline();

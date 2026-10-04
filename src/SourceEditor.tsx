@@ -6,10 +6,13 @@ interface Props {
   errorLine?: number;
   onChange: (value: string) => void;
   onCursor: ReactEventHandler<HTMLTextAreaElement>;
+  id?: string;
+  label?: string;
+  placeholder?: string;
 }
 /** Plain textarea with a line-number gutter, error-line marker, and Tab indentation. */
 const SourceEditor = forwardRef<HTMLTextAreaElement, Props>(function SourceEditor(
-  { value, wrap, errorLine, onChange, onCursor },
+  { value, wrap, errorLine, onChange, onCursor, id, label, placeholder },
   ref,
 ) {
   const lines = useMemo(() => {
@@ -48,11 +51,12 @@ const SourceEditor = forwardRef<HTMLTextAreaElement, Props>(function SourceEdito
       )}
       <textarea
         ref={ref}
-        id="input-textarea"
+        id={id ?? 'input-textarea'}
         className="source-editor"
-        aria-label="JSON source"
+        aria-label={label ?? 'JSON source'}
         aria-invalid={errorLine !== undefined || undefined}
         placeholder={
+          placeholder ??
           'Paste JSON here, or drop a file.\n\nBroken JSON? Comments, trailing commas, and single quotes can be repaired in one click.\n\nEverything stays on your device.'
         }
         value={value}

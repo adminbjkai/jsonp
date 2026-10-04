@@ -1,0 +1,357 @@
+/* Graph view. Overrides the legacy dark-only graph rules in index.css so the graph follows the theme. */
+:root .graph-area {
+  --text: inherit;
+  --dim: inherit;
+  --muted: inherit;
+  --string: inherit;
+  --number: inherit;
+  --boolean: inherit;
+  --graph-edge: color-mix(in srgb, var(--dim) 55%, transparent);
+  --graph-match: var(--number);
+  background: var(--bg);
+}
+.graph-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+.graph-canvas:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+/* Cards: sizes must match CARD_WIDTH / cardHeight() in Graph.tsx. */
+.graph-area .graph-card {
+  box-sizing: border-box;
+  width: 260px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--text);
+  background: var(--panel);
+  overflow: hidden;
+  box-shadow: 0 4px 16px #0000001f;
+  transition:
+    opacity 0.15s,
+    border-color 0.15s;
+}
+.graph-area .graph-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.graph-area .graph-card.match {
+  border-color: var(--graph-match);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--graph-match) 45%, transparent);
+}
+.graph-area .graph-card.dim {
+  opacity: 0.38;
+}
+.graph-card-header {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  border-bottom: 1px solid var(--line);
+  box-sizing: border-box;
+}
+.graph-area .graph-card-title {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  width: auto;
+  border: 0;
+  padding: 0 12px;
+  border-radius: 0;
+  justify-content: flex-start;
+  gap: 9px;
+  color: var(--accent);
+}
+.graph-area .graph-card-title:hover {
+  background: var(--selected);
+}
+.graph-area .graph-card-title small {
+  color: var(--dim);
+}
+.graph-toggle {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin-right: 8px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--muted);
+  background: var(--raised);
+}
+.graph-row .graph-toggle {
+  width: 18px;
+  height: 18px;
+  margin: 0 8px 0 4px;
+}
+.graph-area .graph-properties {
+  max-height: 196px;
+  overflow: auto;
+}
+.graph-row {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  font: 10px monospace;
+}
+.graph-row:hover,
+.graph-row.active {
+  background: var(--selected);
+}
+.graph-row.match {
+  background: color-mix(in srgb, var(--graph-match) 22%, transparent);
+  box-shadow: inset 2px 0 0 var(--graph-match);
+}
+.graph-row-select {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 12px;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 0;
+  font: inherit;
+  color: var(--text);
+}
+.graph-row-select:hover {
+  background: transparent;
+  color: var(--text);
+}
+.graph-row-key {
+  color: var(--key);
+  flex-shrink: 0;
+  max-width: 50%;
+}
+.graph-row-key,
+.graph-row-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.graph-row-value {
+  min-width: 0;
+}
+.graph-link {
+  max-width: 55%;
+  padding-right: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.graph-area .graph-row .color-swatch {
+  margin: 0 6px 0 0;
+  border-color: var(--line);
+}
+.graph-row-select + .color-swatch {
+  margin-left: -6px;
+}
+.graph-area .graph-properties p {
+  box-sizing: border-box;
+  height: 32px;
+  margin: 0;
+  padding: 0 10px;
+  line-height: 32px;
+  color: var(--dim);
+}
+
+/* Handles, edges, background, minimap */
+.graph-area .react-flow__handle {
+  border-color: var(--panel) !important;
+  background: var(--accent) !important;
+}
+.graph-area .react-flow__edge-path {
+  stroke: var(--graph-edge);
+  stroke-width: 1.5;
+}
+.graph-area .react-flow__edge.graph-edge-active .react-flow__edge-path {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.graph-area .react-flow__edge {
+  cursor: pointer;
+}
+.graph-area .react-flow__edge-textbg {
+  fill: var(--bg);
+}
+.graph-area .react-flow__edge-text {
+  fill: var(--muted);
+  font: 9px monospace;
+}
+.graph-area .react-flow__edge.graph-edge-active .react-flow__edge-text {
+  fill: var(--accent);
+}
+.graph-area .react-flow__background circle,
+.graph-area .react-flow__background-pattern {
+  fill: var(--line);
+}
+.graph-area .react-flow__minimap {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  margin-bottom: 64px;
+}
+.graph-area .react-flow__minimap-mask {
+  fill: color-mix(in srgb, var(--bg) 70%, transparent);
+}
+.graph-area .react-flow__minimap-node {
+  fill: var(--dim);
+  stroke: none;
+}
+.graph-area .react-flow__attribution {
+  background: color-mix(in srgb, var(--panel) 85%, transparent) !important;
+}
+.graph-area .react-flow__attribution a {
+  color: var(--muted) !important;
+}
+
+/* Overlays */
+.graph-top {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: none;
+}
+.graph-area .graph-caption {
+  position: static;
+  background: color-mix(in srgb, var(--panel) 93%, transparent);
+  color: var(--accent);
+  border-color: var(--line);
+}
+.graph-area .graph-caption span {
+  color: var(--dim);
+}
+.graph-caption b {
+  font-weight: 400;
+  color: var(--graph-match);
+}
+.graph-notices {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  pointer-events: auto;
+}
+.graph-chip,
+.graph-note,
+.graph-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 5px 6px 5px 10px;
+  font-size: 11px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: 0 4px 16px #0000001f;
+}
+.graph-chip span {
+  font-family: monospace;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.graph-chip button {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: var(--raised);
+}
+.graph-note button {
+  padding: 3px;
+  border-radius: 999px;
+}
+.graph-status {
+  position: absolute;
+  bottom: 66px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  padding: 7px 12px;
+  white-space: nowrap;
+}
+.graph-overflow {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  height: auto;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+}
+
+/* Floating dock */
+.graph-dock {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: max-content;
+  max-width: calc(100% - 16px);
+  box-sizing: border-box;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  box-shadow: 0 6px 22px #00000029;
+}
+.graph-dock button {
+  flex-shrink: 0;
+  height: 30px;
+  min-width: 28px;
+  padding: 0 6px;
+  gap: 2px;
+  color: var(--muted);
+}
+.graph-dock-divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background: var(--line);
+}
+.graph-dock-caret {
+  font-size: 9px;
+}
+.graph-export-menu {
+  position: absolute;
+  bottom: 62px;
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+  padding: 4px;
+  transform: translateX(-50%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  box-shadow: 0 6px 22px #00000033;
+}
+.graph-export-menu button {
+  height: 30px;
+  padding: 0 10px;
+  justify-content: flex-start;
+  color: var(--text);
+  font-size: 12px;
+}
+/* Cards are neither draggable nor selectable, but their buttons and links must stay clickable. */
+.graph-area .react-flow__node {
+  pointer-events: all !important;
+}

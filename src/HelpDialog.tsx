@@ -45,38 +45,48 @@ export default function HelpDialog({
       </div>
       <ol className="quick-start">
         <li>
-          <b>Bring in JSON.</b> Paste it into Source, drop a file anywhere, or use <em>Open</em>.
-          Broken JSON — comments, trailing commas, single quotes — gets a one-click <em>Repair</em>.
+          <b>Pick a mode.</b> <em>Format</em> is the quick one: paste on the left, read clean JSON
+          on the right. <em>Workspace</em> puts source, formatted output, explorer, table, and graph
+          side by side. <em>Compare</em> lines up two documents and highlights every difference.
         </li>
         <li>
-          <b>Click any value.</b> Its path appears at the top, ready to copy, and the matching lines
-          light up in every pane.
+          <b>Bring in data.</b> Paste, drop a file anywhere, or use <em>Open</em>. JSON, YAML, XML,
+          CSV, and Excel files become JSON. Broken JSON gets a one-click <em>Repair</em>.
         </li>
         <li>
-          <b>Find what matters.</b> Type in the Explorer’s Find box, or start with <code>$</code> to
-          run a JSONPath query.
+          <b>Read it your way.</b> Switch the output between Code, Tree, Table, and Graph. Click any
+          value to see its path.
         </li>
         <li>
-          <b>Take it further.</b> <em>Tools</em> sorts and cleans, <em>Convert</em> creates
-          TypeScript, JSON Schema, YAML, or CSV, <em>Compare</em> shows what changed, and{' '}
-          <em>Export</em> downloads, shares, or builds an Excel IRD.
+          <b>Find what matters.</b> Type in Find, or start with <code>$</code> to run a JSONPath
+          query. Matches light up in the graph too.
+        </li>
+        <li>
+          <b>Take it further.</b> <em>Convert</em> creates TypeScript, Go, Rust, Python, Zod,
+          Kotlin, C#, JSON Schema, YAML, CSV, or XML. <em>Schema</em> validates against a JSON
+          Schema, and <em>Export</em> downloads, shares, or builds an Excel IRD.
         </li>
       </ol>
       <button className="button" onClick={() => (close(), onSample())}>
         Load the sample to try it
       </button>
-      <h3>Panes</h3>
+      <h3>Views</h3>
       <dl className="help-panes">
         <dt>Source</dt>
         <dd>Your editable JSON. Errors show their line and column.</dd>
         <dt>Formatted</dt>
         <dd>A clean, colored copy. Numbers and key order are never altered.</dd>
         <dt>Explorer</dt>
-        <dd>Every value with its path. Search, query, copy paths, and step through results.</dd>
+        <dd>
+          The tree: every value with its path. Search, query, copy paths, and step through results.
+        </dd>
         <dt>Table</dt>
         <dd>Arrays of records as rows and columns. Click a column to sort.</dd>
         <dt>Graph</dt>
-        <dd>Objects and arrays as connected cards.</dd>
+        <dd>
+          Objects and arrays as connected cards. Collapse branches, flip the direction, and export a
+          PNG or SVG.
+        </dd>
       </dl>
       <h3>Try a query</h3>
       <p>These work on the sample. Click one to run it.</p>

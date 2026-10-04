@@ -1,6 +1,13 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
+// These scenarios exercise the multi-pane workspace mode.
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(() => {
+    if (!location.hash.startsWith('#json=')) localStorage.setItem('jsonp.mode', '"workspace"');
+  });
+});
+
 const source = (page: Page) => page.getByLabel('JSON source');
 const rows = (page: Page) => page.getByLabel('JSON values').getByRole('listitem');
 const clipboard = (page: Page) => page.evaluate(() => navigator.clipboard.readText());
@@ -142,29 +149,6 @@ test('convert previews and downloads TypeScript, YAML, and CSV from a table', as
   await expect(preview).toHaveText('name,role\r\nAlex,Engineer\r\nSam,Designer\r\n');
 });
 
-test('compare lists structural differences and jumps to them', async ({ page }) => {
-  await page.goto('/');
-  await ready(page);
-  await page.getByRole('button', { name: 'Compare', exact: true }).click();
-  await page
-    .getByLabel('Second JSON document')
-    .fill(
-      '{"version":3,"project":"Orbital","status":"ready","settings":{"theme":"#b5d68b","notifications":true,"refreshInterval":30.0},"crew":[{"name":"Alex","role":"Engineer"},{"name":"Sam","role":"Designer"}],"nextLaunch":null,"extra":1}',
-    );
-  const list = page.getByLabel('Differences');
-  await expect(list.getByRole('listitem')).toHaveCount(2);
-  await expect(list).toContainText('$.version');
-  await expect(list).toContainText('$.extra');
-  await list.getByRole('button', { name: /\$\.version/ }).click();
-  await expect(page.getByRole('dialog')).toBeHidden();
-  await expect(page.locator('.selected-path-copy')).toContainText('$.version');
-  await page.getByRole('button', { name: 'Compare', exact: true }).click();
-  await page.getByLabel('Second JSON document').fill("{'broken': true,}");
-  await expect(page.getByText('isn’t valid JSON')).toBeVisible();
-  await page.getByRole('button', { name: 'Repair it' }).click();
-  await expect(page.getByLabel('Second JSON document')).toHaveValue('{\n  "broken": true\n}');
-});
-
 test('share links, remembered drafts, CSV import, and the welcome guide', async ({
   page,
   context,
@@ -188,7 +172,7 @@ test('share links, remembered drafts, CSV import, and the welcome guide', async 
   const other = await context.newPage();
   await other.goto(link);
   await expect(other.getByLabel('JSON source')).toHaveValue('{\n  "shared": 9007199254740993\n}');
-  expect(other.url()).not.toContain('#');
+  expect(other.url()).not.toContain('#json=');
   await expect(other.getByLabel('Getting started', { exact: true })).toBeHidden();
   // Drafts persist only after opting in.
   await source(page).fill('{"draft":1}');
@@ -240,7 +224,7 @@ test('new dialogs and the table meet accessibility checks', async ({ page }) => 
   for (const open of [
     () => page.keyboard.press('Control+k'),
     () => page.getByRole('button', { name: 'Convert', exact: true }).click(),
-    () => page.getByRole('button', { name: 'Compare', exact: true }).click(),
+    () => tool(page, 'Tools', 'Validate against a JSON Schema…'),
     () => page.getByLabel('Help and shortcuts').click(),
     () => page.getByRole('button', { name: '16 values' }).click(),
   ]) {

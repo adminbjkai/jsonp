@@ -1,7 +1,29 @@
 import { test, expect } from '@playwright/test';
-import { read } from 'xlsx';
+import { readXlsx, parseCellRef, rangeRef } from 'hucre/xlsx';
+import type { Workbook } from 'hucre/xlsx';
 import { readFile } from 'node:fs/promises';
 import type { Page } from '@playwright/test';
+
+// These scenarios exercise the multi-pane workspace mode.
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(() => {
+    if (!location.hash.startsWith('#json=')) localStorage.setItem('jsonp.mode', '"workspace"');
+  });
+});
+
+const readWorkbook = async (path: string | null) => readXlsx(await readFile(path!));
+const names = (workbook: Workbook) => workbook.sheets.map((sheet) => sheet.name);
+const sheet = (workbook: Workbook, name: string) =>
+  workbook.sheets.find((item) => item.name === name)!;
+const cellAt = (workbook: Workbook, name: string, ref: string) => {
+  const { row, col } = parseCellRef(ref);
+  return sheet(workbook, name).rows[row]?.[col];
+};
+const usedRange = (workbook: Workbook, name: string) => {
+  const { rows } = sheet(workbook, name);
+  return rangeRef(0, 0, rows.length - 1, rows[0].length - 1);
+};
+const allRows = (workbook: Workbook) => JSON.stringify(workbook.sheets.map((item) => item.rows));
 
 async function openExcel(page: Page) {
   await page.getByRole('button', { name: 'Export', exact: true }).click();
@@ -44,9 +66,9 @@ test('formats accurately, selects escaped paths, searches, exports, and handles 
   const excelDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download XLSX', exact: true }).click();
   const excel = await excelDownload;
-  const workbook = read(await readFile((await excel.path())!), { type: 'buffer' });
-  expect(workbook.SheetNames).toEqual(['Data_Mapping_IRD']);
-  expect(workbook.Sheets.Data_Mapping_IRD.D4.v).toBe('9007199254740993');
+  const workbook = await readWorkbook(await excel.path());
+  expect(names(workbook)).toEqual(['Data_Mapping_IRD']);
+  expect(cellAt(workbook, 'Data_Mapping_IRD', 'D4')).toBe('9007199254740993');
   await page.getByLabel('JSON source').fill('{oops');
   await expect(page.getByRole('alert')).toBeVisible();
   await expect(page.getByLabel('Download JSON', { exact: true })).toBeDisabled();
@@ -213,8 +235,6 @@ test('desktop and mobile themes meet accessibility checks', async ({ page }) => 
 test('clean and blank IRD workbooks omit sample data and keep the sample export separate', async ({
   page,
 }) => {
-  const { readFile } = await import('node:fs/promises');
-  const { utils } = await import('xlsx');
   await page.goto('/');
   await page
     .getByLabel('JSON source')
@@ -228,18 +248,19 @@ test('clean and blank IRD workbooks omit sample data and keep the sample export 
   await page.getByRole('button', { name: 'Download XLSX', exact: true }).click();
   const file = await download;
   expect(file.suggestedFilename()).toMatch(/^IRD_Mapping_Template_/);
-  const workbook = read(await readFile((await file.path())!), { type: 'buffer' });
-  expect(workbook.SheetNames).toEqual(['Overview', 'Field Mapping', 'Instructions']);
-  expect(JSON.stringify(workbook.Sheets)).not.toContain('SAMPLE_SECRET');
-  const rows = utils.sheet_to_json<Record<string, string>>(workbook.Sheets['Field Mapping']);
+  const workbook = await readWorkbook(await file.path());
+  expect(names(workbook)).toEqual(['Overview', 'Field Mapping', 'Instructions']);
+  expect(allRows(workbook)).not.toContain('SAMPLE_SECRET');
+  const [header, ...body] = sheet(workbook, 'Field Mapping').rows;
+  const rows = body.map((row) => Object.fromEntries(header.map((key, i) => [key, row[i]])));
   expect(rows.map((row) => row['Source JSONPath'])).toEqual([
     '$.crew',
     '$.crew[*].name',
     '$.crew[*].score',
   ]);
   expect(rows[0]['Target Field / Path']).toBe('');
-  expect(workbook.Sheets['Field Mapping']['!autofilter']).toBeDefined();
-  expect(workbook.Sheets['Field Mapping'].A1.v).toBe('Mapping ID');
+  expect(sheet(workbook, 'Field Mapping').autoFilter).toEqual({ range: 'A1:L4' });
+  expect(cellAt(workbook, 'Field Mapping', 'A1')).toBe('Mapping ID');
   await page.getByLabel('Clear source', { exact: true }).click();
   await expect(page.getByText('Empty document', { exact: true })).toBeVisible();
   await openExcel(page);
@@ -249,9 +270,9 @@ test('clean and blank IRD workbooks omit sample data and keep the sample export 
   await page.getByRole('button', { name: 'Download XLSX', exact: true }).click();
   const blankFile = await blankDownload;
   expect(blankFile.suggestedFilename()).toMatch(/^IRD_Blank_Template_/);
-  const blank = read(await readFile((await blankFile.path())!), { type: 'buffer' });
-  expect(blank.Sheets['Field Mapping']['!ref']).toBe('A1:L31');
-  expect(blank.Sheets['Field Mapping'].C2.v).toBe('');
+  const blank = await readWorkbook(await blankFile.path());
+  expect(usedRange(blank, 'Field Mapping')).toBe('A1:L31');
+  expect(cellAt(blank, 'Field Mapping', 'C2')).toBe('');
 });
 
 test('inline paths, breadcrumbs, filtered navigation, and source reveal work', async ({
@@ -326,8 +347,8 @@ test('known target and completed mapping downloads share a schema and ignore the
   await page.getByRole('button', { name: 'Download target XLSX', exact: true }).click();
   const target = await targetDownload;
   expect(target.suggestedFilename()).toMatch(/^Orbital_Target_Example_/);
-  const workbook = read(await readFile((await target.path())!), { type: 'buffer' });
-  expect(workbook.SheetNames).toEqual([
+  const workbook = await readWorkbook(await target.path());
+  expect(names(workbook)).toEqual([
     'Overview',
     'Target Fields',
     'Projects',
@@ -335,20 +356,20 @@ test('known target and completed mapping downloads share a schema and ignore the
     'Source JSON',
     'Instructions',
   ]);
-  expect(workbook.Sheets.Projects.C2.v).toBe('READY');
-  expect(workbook.Sheets.Projects.G2.v).toBe(2);
-  expect(workbook.Sheets.Projects.H2.v).toBe('');
-  expect(workbook.Sheets.Crew.C2.v).toBe('ENGINEER');
+  expect(cellAt(workbook, 'Projects', 'C2')).toBe('READY');
+  expect(cellAt(workbook, 'Projects', 'G2')).toBe(2);
+  expect(cellAt(workbook, 'Projects', 'H2')).toBe('');
+  expect(cellAt(workbook, 'Crew', 'C2')).toBe('ENGINEER');
   const mappingDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download completed IRD', exact: true }).click();
   const mapping = await mappingDownload;
   expect(mapping.suggestedFilename()).toMatch(/^Orbital_Completed_IRD_/);
-  const completed = read(await readFile((await mapping.path())!), { type: 'buffer' });
-  expect(completed.Sheets['Field Mapping']['!ref']).toBe('A1:L12');
-  expect(completed.Sheets['Field Mapping'].E12.v).toBe('Crew.role_code');
-  expect(completed.Sheets['Target Fields']).toEqual(workbook.Sheets['Target Fields']);
-  expect(JSON.stringify(completed)).not.toContain('EDITOR_SECRET_EXCLUDED');
-  expect(JSON.stringify(workbook)).not.toContain('EDITOR_SECRET_EXCLUDED');
+  const completed = await readWorkbook(await mapping.path());
+  expect(usedRange(completed, 'Field Mapping')).toBe('A1:L12');
+  expect(cellAt(completed, 'Field Mapping', 'E12')).toBe('Crew.role_code');
+  expect(sheet(completed, 'Target Fields')).toEqual(sheet(workbook, 'Target Fields'));
+  expect(allRows(completed)).not.toContain('EDITOR_SECRET_EXCLUDED');
+  expect(allRows(workbook)).not.toContain('EDITOR_SECRET_EXCLUDED');
   await page.getByLabel('JSON source').fill('invalid');
   await openExcel(page);
   await page.getByRole('radio', { name: /^Known-target worked example/ }).check();
@@ -357,6 +378,6 @@ test('known target and completed mapping downloads share a schema and ignore the
   ).toBeEnabled();
   const emptyDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download completed IRD', exact: true }).click();
-  const empty = read(await readFile((await (await emptyDownload).path())!), { type: 'buffer' });
-  expect(empty.Sheets['Field Mapping']).toEqual(completed.Sheets['Field Mapping']);
+  const empty = await readWorkbook(await (await emptyDownload).path());
+  expect(sheet(empty, 'Field Mapping')).toEqual(sheet(completed, 'Field Mapping'));
 });

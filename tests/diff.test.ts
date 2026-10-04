@@ -158,3 +158,16 @@ test('large additions and ignore-order pools stay fast', () => {
   assert.ok(performance.now() - start < 1500, `took ${performance.now() - start} ms`);
   start = 0;
 });
+
+test('arrays of different lengths align on equal items', () => {
+  const a = parseTree('[{"id":1},{"id":2},{"id":3},{"id":4}]');
+  const b = parseTree('[{"id":1},{"id":9},{"id":2},{"id":3},{"id":44}]');
+  const result = diffTrees(a, b);
+  assert.deepEqual(
+    result.changes.map((c) => [c.kind, c.parts.join('/')]),
+    [
+      ['added', '1'],
+      ['changed', '3/id'],
+    ],
+  );
+});

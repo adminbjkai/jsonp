@@ -1,5 +1,60 @@
 # Changelog
 
+## 3.0.0 — 2026-10-04
+
+Restructured into three modes, adopting the best parts of jsonformatter.org, JSON Crack, and hucre.
+
+### Modes
+
+- **Format** (new default for first visits): input on the left, a single column of labelled actions in the middle, output on the right.
+  - Actions: Beautify (2, 3, or 4 spaces, or tabs), Minify, Validate, Repair, Sort keys, Convert, Schema, Compare, and Export.
+  - Code, Tree, Table, and Graph output views; "Use the output as input".
+- **Workspace:** the multi-pane explorer from 2.x.
+- **Compare** (replaces the compare dialog):
+  - Side-by-side, line-aligned diff with synced scrolling and character-level highlights.
+  - An overview strip, Prev/Next with "i of N" (F7, Alt+↑/↓), and "Only changes" folding with expandable context.
+  - Swap sides, sort keys, and ignore array order.
+  - Each side can open, paste, use a sample, format, repair, and send its document to the workspace.
+  - A clickable list of structural changes and a copyable report.
+  - Handles about 120,000 lines per side, with alignment computed in a worker by jsdiff.
+- Each mode has its own address (`#format`, `#workspace`, `#compare`), and the last mode is remembered.
+
+### Graph
+
+- Collapse and expand branches, collapse or expand everything, and show only one branch.
+- Large documents start collapsed to 300 cards instead of hitting a 400-container limit.
+- Explorer search and JSONPath matches are highlighted, and outside selections center the graph.
+- Left-to-right or top-to-bottom layout, a minimap, a grid, and key labels on edges.
+- Export a PNG or SVG of the whole graph, or copy a PNG.
+- Colour swatches for hex, rgb(), and hsl() values, clickable URLs, both themes, and Shift+1 and Shift+2 shortcuts.
+
+### Import and export
+
+- Open YAML, XML, XLSX/XLS, and ODS as well as JSON and CSV/TSV. Pasted YAML, XML, or CSV is detected and offered a one-click conversion.
+  - YAML numbers stay exact, anchors and multiple documents are supported, and XML values stay strings.
+  - Imports run in a worker with size, cell, and zip-bomb limits.
+- Excel export moved from vendored SheetJS 0.20.3 to hucre 1.1.0. The export worker went from 111 KB to 44 KB gzipped, and the vendored tarball was removed. Workbooks keep the same sheets, columns, values, widths, and autofilters, and now have bold, frozen header rows.
+- New converters: Go, Rust (serde), Python dataclasses, Zod, Kotlin (kotlinx.serialization), C# (System.Text.Json), and XML. They join TypeScript, JSON Schema, YAML, and CSV in two groups, Types and Data.
+- JSON Schema validation (drafts 4 to 2020-12, no eval): generate a schema from the document, validate, and click a problem to jump to it.
+
+### Verified
+
+- The structural change list now aligns array items, so one inserted item is reported as one addition instead of a cascade of positional changes.
+- Hardening from an independent adversarial review:
+  - **YAML import:** keeps key order, converts `!!set` and `!!omap`, and explains recursive anchors and complex keys in plain language.
+  - **XML import:** decodes numeric character references.
+  - **Empty or damaged spreadsheets:** these are refused instead of replacing the document with `[]`.
+  - **Excel export:** text is sanitized for XML and Excel's 32,767-character cell limit.
+  - **Schema validation:** runs in a worker with a 10-second limit.
+  - **Big integers:** integers beyond 64 bits get arbitrary-precision types in Go, Rust, Kotlin, and C#.
+  - **Share links:** a link pasted into an open tab now loads.
+  - **Keyboard and settings:** Ctrl/⌘+F opens the Tree search from any Format view, Ctrl/⌘+Enter in Compare never reformats the main document, and an invalid saved mode falls back to Format.
+- Verified: 141 unit tests and 36 browser scenarios against the production build cover the Format, Workspace, and Compare modes, graph features, imports, schema validation, accessibility checks in every mode and theme, and phone layouts. The independent pass also covered:
+  - **Content security policy:** zero violations with the production header.
+  - **Privacy:** no requests to other origins.
+  - **Generated code:** compiled or executed checks for the TypeScript, Go, and Python output.
+  - **Workbooks:** opened in LibreOffice and openpyxl.
+
 ## 2.0.0 — 2026-10-03
 
 ### Easier to learn

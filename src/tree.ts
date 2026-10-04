@@ -52,12 +52,13 @@ export function parseTree(source: string): Node {
   return read(0);
 }
 
-/** Serializes a tree. indent 0 produces compact output. */
-export function serialize(node: Node, indent = 2): string {
+/** Serializes a tree. indent 0 produces compact output; '\t' indents with tabs. */
+export function serialize(node: Node, indent: number | '\t' = 2): string {
   const out: string[] = [];
+  const unit = typeof indent === 'string' ? indent : ' '.repeat(indent);
   const write = (n: Node, depth: number) => {
-    const pad = indent ? '\n' + ' '.repeat((depth + 1) * indent) : '';
-    const close = indent ? '\n' + ' '.repeat(depth * indent) : '';
+    const pad = unit ? '\n' + unit.repeat(depth + 1) : '';
+    const close = unit ? '\n' + unit.repeat(depth) : '';
     if (n.type === 'object') {
       if (!n.members.length) return void out.push('{}');
       out.push('{');
@@ -65,7 +66,7 @@ export function serialize(node: Node, indent = 2): string {
         out.push(
           index ? ',' + pad : pad,
           member.raw ?? JSON.stringify(member.key),
-          indent ? ': ' : ':',
+          unit ? ': ' : ':',
         );
         write(member.value, depth + 1);
       });

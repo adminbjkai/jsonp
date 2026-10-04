@@ -1,0 +1,494 @@
+/* Compare mode: side-by-side editors and a line-aligned, virtualized difference view. */
+.compare-view {
+  --cmp-del-bg: rgba(247, 112, 90, 0.13);
+  --cmp-add-bg: rgba(140, 214, 110, 0.12);
+  --cmp-mod-bg: rgba(223, 189, 133, 0.12);
+  --cmp-char-del: rgba(247, 112, 90, 0.38);
+  --cmp-char-add: rgba(140, 214, 110, 0.34);
+  --cmp-del-mark: #f08a74;
+  --cmp-add-mark: #8fd16f;
+  --cmp-mod-mark: #dfbd85;
+  --cmp-hatch: var(--line);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  min-width: 0;
+  padding: 0 28px 20px;
+  gap: 10px;
+}
+:root[data-theme='light'] .compare-view {
+  --cmp-del-bg: rgba(200, 60, 40, 0.09);
+  --cmp-add-bg: rgba(60, 140, 40, 0.1);
+  --cmp-mod-bg: rgba(190, 130, 20, 0.11);
+  --cmp-char-del: rgba(200, 60, 40, 0.22);
+  --cmp-char-add: rgba(60, 140, 40, 0.24);
+  --cmp-del-mark: #b8442f;
+  --cmp-add-mark: #3d7f2a;
+  --cmp-mod-mark: #a8701c;
+}
+/* Slightly deeper syntax colors keep 4.5:1 contrast on the light tinted rows. */
+:root[data-theme='light'] .cmp-cell .token-string {
+  color: #466b25;
+}
+:root[data-theme='light'] .cmp-cell .token-number {
+  color: #855218;
+}
+.cmp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.cmp-toolbar .button {
+  min-height: 33px;
+}
+.cmp-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.cmp-position {
+  min-width: 64px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cmp-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--error);
+  border-radius: 6px;
+  color: var(--error);
+  font-size: 12px;
+  flex-shrink: 0;
+  overflow-wrap: anywhere;
+}
+.cmp-message svg {
+  flex-shrink: 0;
+}
+.cmp-spin {
+  animation: cmp-spin 0.9s linear infinite;
+}
+@keyframes cmp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Edit ---- */
+.cmp-editors {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+.compare-view .cmp-side {
+  display: flex;
+  min-width: 0;
+}
+.cmp-side[data-invalid] {
+  border-color: var(--error);
+}
+.cmp-badge {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--muted);
+}
+.cmp-side-tools {
+  gap: 2px;
+}
+.cmp-spacer {
+  flex: 1;
+}
+.cmp-side-error {
+  margin: 0;
+  padding: 7px 12px;
+  border-top: 1px solid var(--line);
+  color: var(--error);
+  font-size: 11px;
+  line-height: 1.5;
+  flex-shrink: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Differences ---- */
+.cmp-body {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+.cmp-diff {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.cmp-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  min-height: 40px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.cmp-counts {
+  display: flex;
+  gap: 6px;
+}
+.cmp-chip {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.cmp-chip.k-add {
+  background: var(--cmp-char-add);
+}
+.cmp-chip.k-del {
+  background: var(--cmp-char-del);
+}
+.cmp-chip.k-mod {
+  background: var(--cmp-mod-bg);
+  box-shadow: inset 0 0 0 1px var(--cmp-mod-mark);
+}
+.cmp-running {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.cmp-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--number);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.cmp-banner svg {
+  flex-shrink: 0;
+}
+.cmp-identical .button {
+  color: var(--text);
+}
+.cmp-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding-right: 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.cmp-columns span {
+  padding: 5px 0 5px 60px;
+}
+.cmp-frame {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.cmp-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
+}
+.cmp-lines {
+  position: relative;
+}
+.cmp-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 22px;
+}
+.cmp-cells {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 52px minmax(0, 1fr);
+  height: 100%;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-size: 13px;
+  line-height: 22px;
+}
+.cmp-num {
+  text-align: right;
+  padding-right: 8px;
+  font-size: 10px;
+  color: var(--muted);
+  user-select: none;
+  overflow: hidden;
+}
+.cmp-cells > .cmp-num:nth-child(3) {
+  border-left: 1px solid var(--line);
+}
+.cmp-cell {
+  overflow: hidden;
+  white-space: pre;
+}
+.cmp-cell code {
+  display: inline-block;
+  padding: 0 16px 0 6px;
+  transform: translateX(var(--sx, 0));
+}
+.cmp-cell mark {
+  color: inherit;
+  border-radius: 2px;
+}
+mark.cmp-char-del {
+  background: var(--cmp-char-del);
+}
+mark.cmp-char-add {
+  background: var(--cmp-char-add);
+}
+.cmp-filler {
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 6px,
+    var(--cmp-hatch) 6px 7px
+  ) !important;
+}
+.k-del .cmp-cells > :nth-child(-n + 2) {
+  background: var(--cmp-del-bg);
+}
+.k-add .cmp-cells > :nth-child(n + 3) {
+  background: var(--cmp-add-bg);
+}
+.k-mod .cmp-cells > * {
+  background: var(--cmp-mod-bg);
+}
+.cmp-row.is-current::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent);
+}
+.cmp-row.is-flash {
+  animation: cmp-flash 1.4s ease-out;
+}
+@keyframes cmp-flash {
+  0%,
+  40% {
+    box-shadow: inset 0 0 0 2px var(--accent);
+  }
+  100% {
+    box-shadow: inset 0 0 0 2px transparent;
+  }
+}
+.cmp-fold button {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  justify-content: flex-start;
+  padding-left: 60px;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--raised);
+  border-top: 1px dashed var(--line);
+  border-bottom: 1px dashed var(--line);
+}
+.cmp-overview {
+  position: relative;
+  width: 14px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--line);
+  cursor: pointer;
+  touch-action: none;
+}
+.cmp-overview canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.cmp-overview-view {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: rgba(155, 168, 149, 0.18);
+  border: 1px solid var(--dim);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.cmp-sideways {
+  width: 100%;
+  margin: 0;
+  padding: 4px 12px;
+  border-top: 1px solid var(--line);
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ---- Changes list ---- */
+.cmp-changes {
+  width: 330px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.cmp-count {
+  margin-left: 4px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.cmp-changes ol {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+}
+.cmp-changes li button {
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 7px 8px;
+  text-align: left;
+  font-size: 12px;
+  color: var(--text);
+}
+.cmp-change-head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+}
+.cmp-change-head b {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.cmp-change-head code {
+  overflow-wrap: anywhere;
+}
+.cmp-changes li[data-kind='added'] b {
+  color: var(--string);
+}
+.cmp-changes li[data-kind='removed'] b {
+  color: var(--error);
+}
+.cmp-changes li[data-kind='changed'] b {
+  color: var(--number);
+}
+.cmp-changes li[data-kind='type'] b {
+  color: var(--boolean);
+}
+.cmp-change-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.cmp-change-values del {
+  color: var(--error);
+}
+.cmp-change-values ins {
+  color: var(--string);
+  text-decoration: none;
+}
+.cmp-more {
+  margin: 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ---- Narrow screens: stacked editors and a unified difference list ---- */
+@media (max-width: 1100px) {
+  .compare-view {
+    padding: 0 18px 16px;
+  }
+}
+@media (max-width: 800px) {
+  .compare-view {
+    padding: 0 16px 12px;
+  }
+  .cmp-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .cmp-editors {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .compare-view .cmp-side {
+    flex: 1 0 280px;
+    min-width: 0;
+    width: 100%;
+  }
+  .cmp-body {
+    flex-direction: column;
+  }
+  .cmp-changes {
+    width: auto;
+    max-height: 40%;
+  }
+  .is-narrow .cmp-cells {
+    grid-template-columns: 40px 40px 16px minmax(0, 1fr);
+  }
+  .is-narrow .cmp-cells > .cmp-num:nth-child(3) {
+    border-left: 0;
+  }
+  .cmp-sign {
+    text-align: center;
+    color: var(--muted);
+    user-select: none;
+  }
+  .is-narrow .k-del .cmp-cells > *,
+  .is-narrow .k-add .cmp-cells > * {
+    background: none;
+  }
+  .is-narrow .k-del .cmp-cells {
+    background: var(--cmp-del-bg);
+  }
+  .is-narrow .k-add .cmp-cells {
+    background: var(--cmp-add-bg);
+  }
+  .cmp-fold button {
+    padding-left: 96px;
+  }
+}

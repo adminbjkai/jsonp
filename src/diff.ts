@@ -1,4 +1,5 @@
 /** Structural comparison of two lossless trees. */
+import { diffArrays } from 'diff';
 import { serialize, type Node, type Part, canonicalNumber } from './tree';
 
 export type ChangeKind = 'added' | 'removed' | 'changed' | 'type';
@@ -127,6 +128,38 @@ export function diffTrees(
         y.items.forEach((item, j) => {
           if (!matched.has(j)) push('added', [...parts, j], undefined, item);
         });
+        return;
+      }
+      // Arrays of different lengths are aligned on equal items first, so one inserted item is
+      // one addition instead of a cascade of positional changes. Falls back to positions.
+      const ops =
+        x.items.length !== y.items.length
+          ? diffArrays(x.items.map(canonical), y.items.map(canonical), { timeout: 1000 })
+          : undefined;
+      if (ops) {
+        let i = 0,
+          j = 0;
+        for (let k = 0; k < ops.length && !truncated; k++) {
+          const op = ops[k];
+          if (!op.added && !op.removed) {
+            i += op.count;
+            j += op.count;
+          } else if (op.removed) {
+            const added = ops[k + 1]?.added ? ops[++k].count : 0;
+            const pairs = Math.min(op.count, added);
+            for (let n = 0; n < pairs; n++) walk(x.items[i + n], y.items[j + n], [...parts, i + n]);
+            for (let n = pairs; n < op.count; n++)
+              push('removed', [...parts, i + n], x.items[i + n]);
+            for (let n = pairs; n < added; n++)
+              push('added', [...parts, j + n], undefined, y.items[j + n]);
+            i += op.count;
+            j += added;
+          } else {
+            for (let n = 0; n < op.count; n++)
+              push('added', [...parts, j + n], undefined, y.items[j + n]);
+            j += op.count;
+          }
+        }
         return;
       }
       const shared = Math.min(x.items.length, y.items.length);

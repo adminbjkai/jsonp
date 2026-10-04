@@ -29,6 +29,8 @@ interface Props {
   query: string;
   setQuery: (query: string) => void;
   source: string;
+  /** Reports the paths matched by the current search or query (null when not searching). */
+  onMatches?: (paths: ReadonlySet<string> | null) => void;
 }
 const ROW_HEIGHT = 58;
 type PathFormat = 'jsonpath' | 'pointer' | 'js';
@@ -49,6 +51,7 @@ export default function Explorer({
   query,
   setQuery,
   source,
+  onMatches,
 }: Props) {
   const deferredQuery = useDeferredValue(query);
   const queryMode = isQuery(deferredQuery);
@@ -116,6 +119,10 @@ export default function Explorer({
       return true;
     });
   }, [entries, deferredQuery, tree, collapsed, queryMode, queried, byPath]);
+  const searching = deferredQuery.trim() !== '';
+  useEffect(() => {
+    onMatches?.(searching ? new Set(visible.map((entry) => entry.path)) : null);
+  }, [searching, visible, onMatches]);
   useEffect(() => {
     setScrollTop(0);
     if (viewport.current) viewport.current.scrollTop = 0;

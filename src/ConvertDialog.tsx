@@ -18,7 +18,8 @@ interface Props {
   request: ConvertRequest;
   copy: (text: string, message?: string) => void;
 }
-/** Converts the document, or the selected value, to TypeScript, JSON Schema, YAML, or CSV. */
+/** Converts the document, or the selected value, to type definitions (TypeScript, JSON Schema, Go,
+ * Rust, Python, Zod, Kotlin, C#) or data formats (YAML, CSV, XML). */
 export default function ConvertDialog({
   dialogRef,
   tree,
@@ -71,21 +72,28 @@ export default function ConvertDialog({
           <X size={18} />
         </button>
       </div>
-      <div className="segmented" role="radiogroup" aria-label="Output format">
-        {FORMATS.map((option) => (
-          <button
-            key={option.id}
-            role="radio"
-            aria-checked={format === option.id}
-            onClick={() => setFormat(option.id)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+      {(['types', 'data'] as const).map((group) => (
+        <div className="convert-scope convert-formats" key={group} style={{ marginTop: 14 }}>
+          <span id={`convert-${group}`} style={{ minWidth: 40 }}>
+            {group === 'types' ? 'Types' : 'Data'}
+          </span>
+          <div className="segmented small" role="radiogroup" aria-labelledby={`convert-${group}`}>
+            {FORMATS.filter((option) => option.group === group).map((option) => (
+              <button
+                key={option.id}
+                role="radio"
+                aria-checked={format === option.id}
+                onClick={() => setFormat(option.id)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
       <p className="dialog-description">{meta.description}</p>
       <div className="convert-scope">
-        <span>From</span>
+        <span style={{ minWidth: 40 }}>From</span>
         <div className="segmented small" role="radiogroup" aria-label="What to convert">
           <button role="radio" aria-checked={!scope} onClick={() => setScopePath(null)}>
             Whole document

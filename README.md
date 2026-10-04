@@ -1,67 +1,86 @@
 # JSON Prettify
 
-A private JSON workspace at **[jsonp.bjk.ai](https://jsonp.bjk.ai)**. Format a document, inspect its values, and navigate its structure without sending your JSON to a server.
+A private JSON toolkit at **[jsonp.bjk.ai](https://jsonp.bjk.ai)**. Format, repair, explore, graph, convert, validate, and compare JSON without sending it to a server.
 
-![JSON Prettify workspace](docs/workspace.png)
+![Format mode](docs/workspace.png)
+
+## Three modes
+
+Switch modes from the header. The address bar remembers your choice (`#format`, `#workspace`, `#compare`), so each mode can be bookmarked.
+
+- **Format** is the quick one, in the spirit of jsonformatter.org. Paste on the left and read clean JSON on the right, with one column of clearly labelled actions between them: **Beautify** (2, 3, or 4 spaces, or tabs), **Minify**, **Validate**, **Repair**, **Sort keys**, **Convert**, **Schema**, **Compare**, and **Export**. The output can be shown as **Code**, **Tree**, **Table**, or **Graph**, and **Use the output as input** copies the result back.
+- **Workspace** puts Source, Formatted, Explorer, Table, and Graph panes side by side for deep exploration. Panes can be dragged, resized, focused, and collapsed.
+- **Compare** lines up two documents side by side and highlights every difference down to the character. Scrolling is synced, **Prev/Next** steps through each change with an "i of N" counter, and **Only changes** folds unchanged lines. Keys can be sorted so key order never counts, and array order can be ignored. A list of value-level changes jumps to each one. Each side can open, paste, format, or repair its own document.
+
+![Compare mode](docs/compare.png)
 
 ## Getting started
 
-1. **Bring in JSON.** Paste it into Source, drop a JSON or CSV file anywhere, or use **Open**. Broken JSON shows the exact line and column with a plain-language explanation. **Repair** fixes comments, trailing or missing commas, single quotes, unquoted keys, Python `True`/`False`/`None`, `NaN`/`Infinity`, smart quotes, JSONP or `const x =` wrappers, Markdown code fences, unclosed brackets, and NDJSON (wrapped into an array).
-2. **Click any value.** Its path appears in the bar above the panes. You can copy it or jump to the source, and the matching lines highlight in every pane.
-3. **Find what matters.** Type in the Explorer's Find box, or start with `$` to run a JSONPath query such as `$.crew[*].name`, `$..name`, or `$.crew[?(@.role == 'Designer')]`.
-4. **Take it further.** **Tools** sorts and cleans, **Convert** creates TypeScript, JSON Schema, YAML, or CSV, **Compare** shows what changed, and **Export** downloads, shares, or builds an Excel IRD.
+1. **Bring in data.** Paste, drop a file anywhere, or use **Open**. JSON, NDJSON, YAML, XML, CSV, TSV, Excel (XLSX/XLS), and OpenDocument (ODS) files all become JSON. Pasted YAML, XML, or CSV is detected and offered a one-click conversion.
+2. **Fix it.** Broken JSON shows the exact line and column with a plain-language explanation. **Repair** fixes comments, trailing or missing commas, single and smart quotes, unquoted keys, Python `True`/`False`/`None`, `NaN`/`Infinity`, JSONP or `const x =` wrappers, Markdown code fences, unclosed brackets, and NDJSON (wrapped into an array). It lists every fix before you apply it.
+3. **Read it your way.** Click any value to see its path. Type in Find, or start with `$` to run a JSONPath query such as `$.crew[*].name`, `$..name`, or `$.crew[?(@.role == 'Designer')]`. Matches also light up in the graph.
+4. **Take it further.** Convert to types or data formats, validate against a JSON Schema, compare, export an Excel IRD workbook, or copy a share link.
 
 ![Command palette](docs/palette.png)
 
-Press **Ctrl/⌘ + K** to search every action by name. **Help** explains each pane and has clickable query examples. A short getting-started banner appears on the first visit.
+Press **Ctrl/⌘ + K** to search every action by name. **Help** explains each mode and view and has clickable query examples. A short getting-started banner appears on the first visit.
 
-## Workspace
+## Views
 
-- **Source:** line numbers, error-line marker, Tab/Shift+Tab indentation, line wrapping, live validation, file import or drop, and multi-step undo for every replacement (format, repair, transforms, open, clear).
-- **Formatted:** syntax colors and line numbers, 2- or 4-space indentation, compact output, copy, and JSON download. Formatting preserves exact number tokens, negative zero, exponents, string escapes, key order, and duplicate keys.
-- **Explorer:** search keys, values, or types, or run JSONPath queries (names, wildcards, recursive descent, indexes, slices, unions, and filters with comparisons, regular expressions, `&&`, `||`, and `!`). Copy query results as a JSON array. Switch between tree and list, expand or collapse branches, and select a value to highlight its source and formatted lines. Choose JSONPath, JSON Pointer, or JavaScript paths; use breadcrumbs, previous/next, or arrow keys to move through results. Root JSON Pointer is the empty string; `/` identifies an empty property name.
-- **Table:** arrays of records as a sortable, filterable, virtualized grid. It follows your selection; click any cell to select that value, or convert the array to CSV.
-- **Graph:** connected container cards with scalar values and color swatches, zoom, pan, fit, manual card positioning, and selection linked to the source.
+- **Source:** line numbers, an error-line marker, Tab/Shift+Tab indentation, line wrapping, live validation, file import or drop, and multi-step undo and redo for every replacement (format, repair, transforms, open, clear).
+- **Code (Formatted):** syntax colors and line numbers, with indentation of 2, 3, or 4 spaces, tabs, or minified output. Formatting preserves exact number tokens, negative zero, exponents, string escapes, key order, and duplicate keys.
+- **Tree (Explorer):** search keys, values, or types, or run JSONPath queries (names, wildcards, recursive descent, indexes, slices, unions, and filters with comparisons, regular expressions, `&&`, `||`, and `!`). Copy query results as a JSON array. Choose JSONPath, JSON Pointer, or JavaScript paths; use breadcrumbs, previous/next, or arrow keys to move through results.
+- **Table:** arrays of records as a sortable, filterable, virtualized grid. Click any cell to select that value, or convert the array to CSV.
+- **Graph** (inspired by JSON Crack): connected cards for objects and arrays, with key labels on the edges.
+  - Collapse or expand any branch, or all of them, or show only the selected branch.
+  - Large documents start collapsed to 300 cards instead of refusing to draw.
+  - Explorer search and query matches are highlighted, and selections elsewhere center the graph.
+  - Toggle left-to-right or top-to-bottom layout, a minimap, and the grid.
+  - Download a PNG or SVG of the whole graph, or copy a PNG.
+  - Colour swatches show hex, `rgb()`, and `hsl()` values; URLs are links. Shift+1 focuses the root and Shift+2 fits the graph.
 - **Insights:** value counts by type, nesting depth, most common keys, largest arrays, and the longest string. Open it from the status bar.
 
-Drag pane headers to reorder, drag dividers to resize, and collapse or focus individual panes. Focused dividers also accept arrow keys. Reset layout restores the default arrangement. On phones, switch panes, including Table and Graph, using tabs. Dark and light themes and pane order persist on this device. There are no AI requests, external fonts, or analytics.
+Dark and light themes, the mode, indentation, pane order, and graph preferences persist on this device. There are no AI requests, external fonts, analytics, or network calls with your data.
 
 ### Tools
 
-| Menu    | Actions                                                                                                                                                                       |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Open    | Open file (JSON, NDJSON, GeoJSON, CSV, or TSV), paste from clipboard, load sample, clear                                                                                      |
-| Tools   | Format, repair, minify, sort keys A–Z (recursive), remove nulls, remove empty values, keep only the selected value, escape as a JSON string, unescape, CSV text to JSON, undo |
-| Convert | TypeScript interfaces (optional keys, unions, merged array shapes), JSON Schema 2020-12 (required keys, integer vs number, formats), YAML, CSV (flattened dotted columns)     |
-| Compare | Structural diff against a second document by path: added, removed, changed, and type-changed values. Key order is ignored; array order can be ignored too.                    |
-| Export  | Copy or download formatted JSON, convert, Excel IRD workbook, copy share link                                                                                                 |
+| Menu or action | What it does                                                                                                                                                                       |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Open           | Open a JSON, YAML, XML, CSV/TSV, XLSX/XLS, or ODS file, paste from the clipboard, load the sample, or clear                                                                        |
+| Tools          | Format, repair, minify, sort keys A–Z (recursive), remove nulls or empty values, keep only the selected value, escape/unescape a JSON string, YAML/XML/CSV text to JSON, undo/redo |
+| Convert        | **Types:** TypeScript, JSON Schema 2020-12, Go, Rust (serde), Python dataclasses, Zod, Kotlin (kotlinx.serialization), C# (System.Text.Json). **Data:** YAML, CSV, XML             |
+| Schema         | Validate against a JSON Schema (drafts 4, 7, 2019-09, 2020-12). Generate a starting schema from the document; click a problem to jump to it                                        |
+| Compare        | The Compare mode described above                                                                                                                                                   |
+| Export         | Copy or download formatted JSON, an Excel IRD workbook, or a share link                                                                                                            |
 
-All transforms and conversions keep exact number tokens. CSV import keeps numbers exact, leaves leading-zero values such as `007` as strings, and turns empty cells into `null`. CSV export prefixes cells that start with `=`, `+`, `-`, or `@` with an apostrophe, unless the cell is a number, to prevent spreadsheet formula injection.
+Type generators infer shapes across array items: keys missing in some items become optional, mixed types become unions, and `null` becomes nullable. All transforms and conversions keep exact number tokens. Imports keep numbers exact too: YAML and CSV values such as `9007199254740993` stay exact, CSV values such as `007` stay strings, and XML values stay strings. CSV export prefixes cells that start with `=`, `+`, `-`, `@`, a tab, or a carriage return with an apostrophe, unless the cell is a number, to prevent spreadsheet formula injection.
 
-**Share links** compress the document into the URL fragment (`#json=…`). Browsers never send the fragment to the server, so the data lives only in the link. Links over 60,000 characters are refused; download the file instead. Opening a link loads the document and clears the fragment from the address bar.
+**Share links** compress the document into the URL fragment (`#json=…`). Browsers never send the fragment to the server, so the data lives only in the link. Links over 60,000 characters are refused; download the file instead.
 
-**Keep my draft on this device** (in the command palette) is off by default. When it is on, the source is saved to this browser's local storage, up to 2 MiB, and restored on the next visit. Turning it off deletes the saved draft. Otherwise, document contents are lost on reload.
+**Keep my draft on this device** (in the command palette) is off by default. When it is on, the source is saved to this browser's local storage, up to 2 MiB, and restored on the next visit. Turning it off deletes the saved draft.
 
 ### Shortcuts
 
 Use Ctrl on Windows/Linux or ⌘ on macOS.
 
-| Keys               | Action                         |
-| ------------------ | ------------------------------ |
-| Ctrl/⌘ + K         | Find any action                |
-| Ctrl/⌘ + Enter     | Format source                  |
-| Ctrl/⌘ + Shift + C | Copy formatted JSON            |
-| Ctrl/⌘ + S         | Download JSON                  |
-| Ctrl/⌘ + F         | Search or query the explorer   |
-| Ctrl/⌘ + /         | Open help                      |
-| Tab / Shift + Tab  | Indent or outdent source lines |
-| Escape             | Close a dialog or exit focus   |
+| Keys                  | Action                                                |
+| --------------------- | ----------------------------------------------------- |
+| Ctrl/⌘ + K            | Find any action                                       |
+| Ctrl/⌘ + Enter        | Format source, or run Compare in Compare mode         |
+| Ctrl/⌘ + Shift + C    | Copy formatted JSON                                   |
+| Ctrl/⌘ + S            | Download JSON                                         |
+| Ctrl/⌘ + F            | Search or query the explorer (outside Source)         |
+| Ctrl/⌘ + /            | Open help                                             |
+| F7 / Shift + F7       | Next or previous difference in Compare (also Alt+↓/↑) |
+| Shift + 1 / Shift + 2 | Focus the graph root / fit the graph                  |
+| Tab / Shift + Tab     | Indent or outdent source lines                        |
+| Escape                | Close a dialog or exit focus                          |
 
-In Source, Ctrl/⌘ + F keeps the browser's own find, and pressing Escape then Tab moves focus out of the editor. When the explorer is focused, ↑/↓ and Home/End navigate visible results, and Ctrl/⌘ + C copies the selected path in the chosen format. Double-click an explorer value to copy its path.
+In Source, Ctrl/⌘ + F keeps the browser's own find, and pressing Escape then Tab moves focus out of the editor. When the explorer is focused, ↑/↓ and Home/End navigate visible results, and Ctrl/⌘ + C copies the selected path in the chosen format.
 
 ### IRD workbooks
 
-Open **Export → Excel IRD workbook…** from the workspace toolbar, or use the explorer’s Excel button.
+Open **Export → Excel IRD workbook…** from either the Format or the Workspace toolbar, or use the explorer’s Excel button. Workbooks are generated by [hucre](https://github.com/productdevbook/hucre) in a background worker.
 
 ![IRD export choices](docs/ird-export.png)
 
@@ -74,7 +93,7 @@ Both clean templates contain **Overview**, **Field Mapping**, and **Instructions
 
 ### Document limits
 
-Formatting, validation, and repair run in a cancellable Web Worker after a short debounce. Source is limited to 5 MiB of UTF-16 code units; imported files are limited to 5 MiB in bytes. The workspace supports 300,000 values, 256 nesting levels, and 20 MiB of formatted output. JSONPath queries also run in a worker and stop after 5 seconds, so a slow filter can't freeze the page. Exceeding a limit produces an explicit error; the source stays intact. Blank input has no output.
+Formatting, validation, repair, queries, comparison, import, and Excel export run in cancellable Web Workers. Source is limited to 5 MiB of UTF-16 code units; imported files are limited to 5 MiB in bytes. The workspace supports 300,000 values, 256 nesting levels, and 20 MiB of formatted output. JSONPath queries also run in a worker and stop after 5 seconds, so a slow filter can't freeze the page. Exceeding a limit produces an explicit error; the source stays intact. Blank input has no output.
 
 The graph supports 400 containers. Larger documents remain available in the searchable explorer and full exports. Primitive roots have no container graph. Duplicate keys are preserved and flagged; reference selection uses the last occurrence, and the graph requires unique paths. Validation follows `JSON.parse` syntax; it does not check a schema.
 
@@ -98,7 +117,7 @@ npm audit
 
 GitHub Actions runs these checks on pushes and pull requests, testing the production build in Chromium.
 
-`check` verifies formatting, strict TypeScript, core regressions, and a production build. Browser tests cover desktop/mobile flows, exact numbers and escaped paths, root copy, file import, Excel/JSON downloads, graph navigation and focus, themes, large-document virtualization, and accessibility. To test an existing deployment, set `TEST_URL` instead of starting Vite:
+`check` verifies formatting, strict TypeScript, core regressions, and a production build. Browser tests cover all three modes on desktop and mobile, exact numbers and escaped paths, file import (JSON, YAML, XML, CSV, XLSX), Excel/JSON/image downloads, graph collapse/search/export, side-by-side compare, schema validation, themes, large-document virtualization, and accessibility. To test an existing deployment, set `TEST_URL` instead of starting Vite:
 
 ```sh
 TEST_URL=https://jsonp.bjk.ai npm run test:e2e
@@ -106,25 +125,32 @@ TEST_URL=https://jsonp.bjk.ai npm run test:e2e
 
 ## Code map
 
-| File                                             | Responsibility                                                               |
-| ------------------------------------------------ | ---------------------------------------------------------------------------- |
-| `src/App.tsx`                                    | Workspace state, action list, worker lifecycle, menus, layout, and shortcuts |
-| `src/json.ts`, `src/json.worker.ts`              | Lossless formatting, typed ranges, and background processing with repair     |
-| `src/tree.ts`                                    | Lossless JSON tree, serialization, and transforms                            |
-| `src/locate.ts`, `src/repair.ts`                 | Plain-language error locations and token-level JSON repair                   |
-| `src/query.ts`, `src/diff.ts`                    | JSONPath evaluation and structural comparison                                |
-| `src/convert.ts`                                 | TypeScript, JSON Schema, YAML, and CSV output; CSV import                    |
-| `src/share.ts`                                   | Compressed share links in the URL fragment                                   |
-| `src/Explorer.tsx`, `src/PathBar.tsx`            | Searchable, queryable virtualized tree/list, breadcrumbs, and path copying   |
-| `src/SourceEditor.tsx`, `src/Output.tsx`         | Source gutter and indentation; virtualized syntax-colored output             |
-| `src/TableView.tsx`, `src/Graph.tsx`             | Record grid and lazy-loaded graph                                            |
-| `src/CommandPalette.tsx`, `src/Menu.tsx`         | Action search and accessible toolbar menus                                   |
-| `src/HelpDialog.tsx`, `src/Insights.tsx`         | Guided help and document profile                                             |
-| `src/ConvertDialog.tsx`, `src/CompareDialog.tsx` | Conversion preview and document comparison                                   |
-| `src/ExportDialog.tsx`, `src/ird.ts`             | Workbook choices, IRD fields, reusable paths, and instructions               |
-| `src/export.ts`, `src/export.worker.ts`          | Downloads and background XLSX generation                                     |
-| `src/index.css`                                  | Themes, responsive layouts, and reduced-motion styling                       |
+| File                                                              | Responsibility                                                                               |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `src/App.tsx`                                                     | Modes, document state, action list, worker lifecycle, menus, layout, shortcuts               |
+| `src/FormatterView.tsx`                                           | Format mode layout: input, action column, and output views                                   |
+| `src/CompareView.tsx`, `src/linediff.ts`, `src/compare.worker.ts` | Compare mode, line alignment (jsdiff), and background comparison                             |
+| `src/json.ts`, `src/json.worker.ts`                               | Lossless formatting, typed ranges, and background processing with repair                     |
+| `src/tree.ts`                                                     | Lossless JSON tree, serialization, transforms, and exact number comparison                   |
+| `src/locate.ts`, `src/repair.ts`                                  | Plain-language error locations and token-level JSON repair                                   |
+| `src/query.ts`, `src/query.worker.ts`, `src/diff.ts`              | JSONPath evaluation (cancellable) and structural comparison                                  |
+| `src/convert.ts`                                                  | Type generators (TypeScript, Go, Rust, Python, Zod, Kotlin, C#), JSON Schema, YAML, CSV, XML |
+| `src/validate.ts`, `src/SchemaDialog.tsx`                         | JSON Schema validation (@cfworker/json-schema, no eval)                                      |
+| `src/importFile.ts`, `src/importers.ts`, `src/import.worker.ts`   | YAML, XML, CSV, XLSX, and ODS import with limits                                             |
+| `src/workbooks.ts`, `src/export.ts`, `src/export.worker.ts`       | Excel IRD workbooks (hucre) and downloads                                                    |
+| `src/share.ts`                                                    | Compressed share links in the URL fragment                                                   |
+| `src/Explorer.tsx`, `src/PathBar.tsx`                             | Searchable, queryable virtualized tree/list, breadcrumbs, and path copying                   |
+| `src/SourceEditor.tsx`, `src/Output.tsx`                          | Source gutter and indentation; virtualized syntax-colored output                             |
+| `src/TableView.tsx`, `src/Graph.tsx`                              | Record grid and the lazy-loaded, collapsible, exportable graph                               |
+| `src/CommandPalette.tsx`, `src/Menu.tsx`                          | Action search and accessible toolbar menus                                                   |
+| `src/HelpDialog.tsx`, `src/Insights.tsx`                          | Guided help and document profile                                                             |
+| `src/ConvertDialog.tsx`, `src/ExportDialog.tsx`, `src/ird.ts`     | Conversion preview, workbook choices, IRD fields, and instructions                           |
+| `src/index.css`, `src/styles/*.css`                               | Themes, responsive layouts, and reduced-motion styling                                       |
 
-SheetJS 0.20.3 is vendored from its [official distribution](https://docs.sheetjs.com/docs/getting-started/installation/nodejs/) because the npm registry package is outdated. Its upstream license is included in the tarball. Graph and Excel code load only when used.
+Heavy libraries load only when used: the graph, Compare, image export, the YAML/XML/spreadsheet importers, and Excel export each live in their own chunk or worker.
+
+## Credits
+
+The Format and Compare modes follow the workflow of [jsonformatter.org](https://jsonformatter.org/). The graph features are inspired by [JSON Crack](https://github.com/AykutSarac/jsoncrack.com). Spreadsheets are read and written with [hucre](https://github.com/productdevbook/hucre). Line diffs use [jsdiff](https://github.com/kpdecker/jsdiff), YAML uses [yaml](https://eemeli.org/yaml/), XML uses [fast-xml-parser](https://github.com/NaturalIntelligence/fast-xml-parser), schemas use [@cfworker/json-schema](https://github.com/cfworker/cfworker/tree/main/packages/json-schema), graph images use [html-to-image](https://github.com/bubkoo/html-to-image), and the graph runs on [React Flow](https://reactflow.dev/).
 
 See [deployment instructions](docs/DEPLOYMENT.md) and [release notes](docs/CHANGELOG.md).
