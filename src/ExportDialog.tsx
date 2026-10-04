@@ -1,6 +1,6 @@
 import { useEffect, useState, type RefObject } from 'react';
 import { FileSpreadsheet, Download, X } from 'lucide-react';
-import type { ExportKind } from './ird';
+import { needsSource, type ExportKind } from './ird';
 interface Props {
   dialogRef: RefObject<HTMLDialogElement | null>;
   count: number;
@@ -28,6 +28,12 @@ export default function ExportDialog({ dialogRef, count, busy, onExport }: Props
       title: 'Blank IRD template',
       description:
         'Start fresh for any interface. Includes an overview, 30 empty mapping rows, and instructions.',
+    },
+    {
+      kind: 'example-mapping',
+      title: 'Known-target worked example',
+      description:
+        'Orbital sample → Projects and Crew tables. Download the target schema and output, plus a completed IRD for every target field.',
     },
     {
       kind: 'samples',
@@ -66,7 +72,7 @@ export default function ExportDialog({ dialogRef, count, busy, onExport }: Props
               name="workbook-type"
               value={option.kind}
               checked={kind === option.kind}
-              disabled={option.kind !== 'blank' && !count}
+              disabled={needsSource(option.kind) && !count}
               onChange={() => {
                 setKind(option.kind);
                 setError(false);
@@ -80,10 +86,24 @@ export default function ExportDialog({ dialogRef, count, busy, onExport }: Props
         ))}
       </fieldset>
       <div className="export-summary">
-        {kind === 'samples'
-          ? `${count.toLocaleString()} values · includes sample data`
-          : '3 sheets · Overview / Field Mapping / Instructions · no sample data'}
+        {kind === 'example-mapping'
+          ? 'Bundled Orbital sample · 2 target tables · 11 completed mappings'
+          : kind === 'samples'
+            ? `${count.toLocaleString()} values · includes sample data`
+            : '3 sheets · Overview / Field Mapping / Instructions · no sample data'}
       </div>
+      {kind === 'example-mapping' && (
+        <button
+          className="button export-download"
+          disabled={busy}
+          onClick={async () => {
+            setError(false);
+            if (!(await onExport('example-target'))) setError(true);
+          }}
+        >
+          <Download size={15} /> Download target XLSX
+        </button>
+      )}
       {error && (
         <p role="alert" className="export-error">
           Couldn’t create the workbook. Please try again.
@@ -91,14 +111,19 @@ export default function ExportDialog({ dialogRef, count, busy, onExport }: Props
       )}
       <button
         className="button primary-button export-download"
-        disabled={busy || (kind !== 'blank' && !count)}
+        disabled={busy || (needsSource(kind) && !count)}
         onClick={async () => {
           setError(false);
           if (await onExport(kind)) dialogRef.current?.close();
           else setError(true);
         }}
       >
-        <Download size={15} /> {busy ? 'Preparing workbook…' : 'Download XLSX'}
+        <Download size={15} />{' '}
+        {busy
+          ? 'Preparing workbook…'
+          : kind === 'example-mapping'
+            ? 'Download completed IRD'
+            : 'Download XLSX'}
       </button>
     </dialog>
   );

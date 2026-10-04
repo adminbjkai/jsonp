@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 
 npm ci
 npm run check
-npm run test:e2e
+CI=true npm run test:e2e
 npm audit --audit-level=low
 
 # Preserve the image actually running, rather than an unrelated latest build.

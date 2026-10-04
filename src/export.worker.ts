@@ -8,6 +8,15 @@ import {
   type ExportKind,
 } from './ird';
 import { utils, write, type WorkSheet } from 'xlsx';
+import {
+  TARGET_FIELDS,
+  TARGET_PROJECTS,
+  TARGET_CREW,
+  EXAMPLE_MAPPING,
+  EXAMPLE_OVERVIEW,
+  EXAMPLE_SOURCE,
+  EXAMPLE_GUIDE,
+} from './mapping-example';
 interface ExportWorker {
   onmessage: ((event: MessageEvent<{ entries: MappingEntry[]; kind: ExportKind }>) => void) | null;
   postMessage: (message: unknown, transfer?: Transferable[]) => void;
@@ -26,7 +35,25 @@ worker.onmessage = (event) => {
   try {
     const { entries, kind } = event.data;
     const workbook = utils.book_new();
-    if (kind === 'samples') {
+    if (kind === 'example-target' || kind === 'example-mapping') {
+      const addRows = (name: string, rows: Record<string, unknown>[]) => {
+        const sheet = utils.json_to_sheet(rows);
+        widths(sheet, rows);
+        utils.book_append_sheet(workbook, sheet, name);
+      };
+      const addInfo = (name: string, rows: string[][]) => {
+        const sheet = utils.aoa_to_sheet(rows);
+        sheet['!cols'] = [{ wch: 34 }, { wch: 110 }];
+        utils.book_append_sheet(workbook, sheet, name);
+      };
+      addInfo('Overview', EXAMPLE_OVERVIEW);
+      if (kind === 'example-mapping') addRows('Field Mapping', EXAMPLE_MAPPING);
+      addRows('Target Fields', TARGET_FIELDS);
+      addRows('Projects', TARGET_PROJECTS);
+      addRows('Crew', TARGET_CREW);
+      addInfo('Source JSON', EXAMPLE_SOURCE);
+      addInfo('Instructions', EXAMPLE_GUIDE);
+    } else if (kind === 'samples') {
       const rows = mappingRows(entries);
       const sheet = utils.json_to_sheet(rows);
       widths(sheet, rows);

@@ -1,5 +1,5 @@
 import type { Entry } from './json';
-import type { ExportKind } from './ird';
+import { needsSource, type ExportKind } from './ird';
 export function download(content: BlobPart, name: string, type = 'application/json') {
   const url = URL.createObjectURL(new Blob([content], { type }));
   const anchor = document.createElement('a');
@@ -30,20 +30,19 @@ export async function exportMapping(entries: Entry[], kind: ExportKind = 'sample
     };
     worker.postMessage({
       kind,
-      entries:
-        kind === 'blank'
-          ? []
-          : entries.map(({ path, parts, type, value }) => ({
-              path,
-              parts,
-              type,
-              value: kind === 'samples' ? value : '',
-            })),
+      entries: !needsSource(kind)
+        ? []
+        : entries.map(({ path, parts, type, value }) => ({
+            path,
+            parts,
+            type,
+            value: kind === 'samples' ? value : '',
+          })),
     });
   });
   download(
     buffer,
-    `${kind === 'samples' ? 'IRD_Mapping' : kind === 'blank' ? 'IRD_Blank_Template' : 'IRD_Mapping_Template'}_${new Date().toISOString().slice(0, 10)}.xlsx`,
+    `${{ samples: 'IRD_Mapping', blank: 'IRD_Blank_Template', ird: 'IRD_Mapping_Template', 'example-target': 'Orbital_Target_Example', 'example-mapping': 'Orbital_Completed_IRD' }[kind]}_${new Date().toISOString().slice(0, 10)}.xlsx`,
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   );
 }

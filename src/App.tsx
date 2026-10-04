@@ -37,7 +37,7 @@ import Explorer from './Explorer';
 import Output from './Output';
 import PathBar from './PathBar';
 import ExportDialog from './ExportDialog';
-import type { ExportKind } from './ird';
+import { needsSource, type ExportKind } from './ird';
 const Graph = lazy(() => import('./Graph'));
 type Pane = 'input' | 'output' | 'paths' | 'graph';
 const DEFAULT_ORDER: Pane[] = ['input', 'output', 'paths'];
@@ -221,11 +221,19 @@ export default function App() {
     [select],
   );
   const exportExcel = async (kind: ExportKind) => {
-    if ((kind !== 'blank' && !entries.length) || exporting) return false;
+    if ((needsSource(kind) && !entries.length) || exporting) return false;
     setExporting(true);
     try {
       await exportMapping(entries, kind);
-      notify(kind === 'samples' ? 'Sample mapping downloaded' : 'IRD template downloaded');
+      notify(
+        kind === 'example-target'
+          ? 'Example target downloaded'
+          : kind === 'example-mapping'
+            ? 'Completed example IRD downloaded'
+            : kind === 'samples'
+              ? 'Sample mapping downloaded'
+              : 'IRD template downloaded',
+      );
       return true;
     } catch {
       return false;

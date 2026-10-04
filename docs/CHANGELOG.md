@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 — 2026-10-03
+
+- Added a known-target worked example to Export XLSX with paired target and completed IRD downloads, available independently of the editor.
+- Defined Projects and Crew target tables, all eleven field contracts, keys, record creation rules, and validation policy. Included the bundled source and expected target output in both workbooks.
+- Completed every target mapping with paths, types, cardinality, transformations, defaults, constraints, and descriptions. Kept existing clean, blank, and sample exports.
+- Added contract/output coverage and browser checks for both workbooks, consistent target schemas, privacy, and invalid-source availability.
+- Verified 19 core tests, all 10 browser scenarios against the production build and public HTTPS app, accessibility checks, and a zero-vulnerability dependency audit.
+
 ## 1.1.0 — 2026-10-03
 
 - Full inline paths with a display-format selector and always-visible copy buttons.

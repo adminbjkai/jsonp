@@ -1,5 +1,5 @@
 import { jsonPath, pointer, type MappingEntry, type ValueType } from './json';
-export type ExportKind = 'ird' | 'blank' | 'samples';
+export type ExportKind = 'ird' | 'blank' | 'samples' | 'example-target' | 'example-mapping';
 export const IRD_HEADERS = [
   'Mapping ID',
   'Source Field',
@@ -113,3 +113,5 @@ export const IRD_INSTRUCTIONS = [
     'This template contains structure and blank decisions only. No sample values are included.',
   ],
 ];
+
+export const needsSource = (kind: ExportKind) => kind === 'ird' || kind === 'samples';

@@ -17,14 +17,14 @@ Host infrastructure values come from `/etc/bjk/deploy.env`; its port range is 80
 
 ## Build and release
 
-For routine releases after the host nginx migration, run `./scripts/deploy.sh`. It checks the app, tags the running image for rollback, builds/recreates the container, and runs browser checks against it. Failed health or browser checks restore the previous image when available. Install Chromium with `npx playwright install chromium` before using the script.
+For routine releases after the host nginx migration, run `./scripts/deploy.sh`. It checks the app and runs browser tests against the production build, tags the running image for rollback, builds/recreates the container, and runs browser checks against it. Failed health or browser checks restore the previous image when available. Install Chromium with `npx playwright install chromium` before using the script.
 
 The equivalent manual steps are:
 
 ```sh
 npm ci
 npm run check
-npm run test:e2e
+CI=true npm run test:e2e
 docker compose build
 docker compose up -d --wait
 curl --fail http://127.0.0.1:8025/health

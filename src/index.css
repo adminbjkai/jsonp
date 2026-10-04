@@ -1226,6 +1226,9 @@ kbd {
 .export-download {
   width: 100%;
 }
+.export-download + .export-download {
+  margin-top: 10px;
+}
 .export-error {
   color: var(--error) !important;
 }

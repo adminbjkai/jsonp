@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { read } from 'xlsx';
+import { readFile } from 'node:fs/promises';
 
 test('formats accurately, selects escaped paths, searches, exports, and handles errors', async ({
   page,
@@ -306,4 +307,50 @@ test('mobile source jump opens the editor from the explorer', async ({ page }) =
   await page.getByRole('button', { name: 'Go to source', exact: true }).click();
   await expect(page.getByLabel('JSON source')).toBeVisible();
   await expect(page.getByLabel('JSON source')).toBeFocused();
+});
+
+test('known target and completed mapping downloads share a schema and ignore the editor', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByLabel('JSON source').fill('{"private":"EDITOR_SECRET_EXCLUDED"}');
+  await page.getByRole('button', { name: 'Export XLSX', exact: true }).click();
+  await page.getByRole('radio', { name: /^Known-target worked example/ }).check();
+  const targetDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download target XLSX', exact: true }).click();
+  const target = await targetDownload;
+  expect(target.suggestedFilename()).toMatch(/^Orbital_Target_Example_/);
+  const workbook = read(await readFile((await target.path())!), { type: 'buffer' });
+  expect(workbook.SheetNames).toEqual([
+    'Overview',
+    'Target Fields',
+    'Projects',
+    'Crew',
+    'Source JSON',
+    'Instructions',
+  ]);
+  expect(workbook.Sheets.Projects.C2.v).toBe('READY');
+  expect(workbook.Sheets.Projects.G2.v).toBe(2);
+  expect(workbook.Sheets.Projects.H2.v).toBe('');
+  expect(workbook.Sheets.Crew.C2.v).toBe('ENGINEER');
+  const mappingDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download completed IRD', exact: true }).click();
+  const mapping = await mappingDownload;
+  expect(mapping.suggestedFilename()).toMatch(/^Orbital_Completed_IRD_/);
+  const completed = read(await readFile((await mapping.path())!), { type: 'buffer' });
+  expect(completed.Sheets['Field Mapping']['!ref']).toBe('A1:L12');
+  expect(completed.Sheets['Field Mapping'].E12.v).toBe('Crew.role_code');
+  expect(completed.Sheets['Target Fields']).toEqual(workbook.Sheets['Target Fields']);
+  expect(JSON.stringify(completed)).not.toContain('EDITOR_SECRET_EXCLUDED');
+  expect(JSON.stringify(workbook)).not.toContain('EDITOR_SECRET_EXCLUDED');
+  await page.getByLabel('JSON source').fill('invalid');
+  await page.getByRole('button', { name: 'Export XLSX', exact: true }).click();
+  await page.getByRole('radio', { name: /^Known-target worked example/ }).check();
+  await expect(
+    page.getByRole('button', { name: 'Download target XLSX', exact: true }),
+  ).toBeEnabled();
+  const emptyDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download completed IRD', exact: true }).click();
+  const empty = read(await readFile((await (await emptyDownload).path())!), { type: 'buffer' });
+  expect(empty.Sheets['Field Mapping']).toEqual(completed.Sheets['Field Mapping']);
 });
