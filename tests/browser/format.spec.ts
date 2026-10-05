@@ -269,28 +269,48 @@ test('expanding a pane keeps the actions and gives it the room', async ({ page }
   expect(await width('Output')).toBeGreaterThan(400);
 });
 
-test('action menus stay inside the window, and the output heading does not overlap', async ({
-  page,
-}) => {
+for (const [width, height] of [
+  [1366, 768],
+  [1000, 700],
+  [1280, 560],
+  [1024, 420],
+]) {
+  for (const welcomed of [false, true]) {
+    test(`action menus fit a ${width}x${height} window${welcomed ? '' : ' with the first-visit banner'}`, async ({
+      page,
+    }) => {
+      if (welcomed) await page.addInitScript(() => localStorage.setItem('jsonp.welcomed', 'true'));
+      await page.setViewportSize({ width, height });
+      await page.goto('/#format');
+      await ready(page);
+      for (const name of ['Export', 'Convert']) {
+        await actions(page).getByRole('button', { name, exact: true }).click();
+        const menu = page.getByRole('menu', { name });
+        const box = (await menu.boundingBox())!;
+        expect(box.y, `${name} top`).toBeGreaterThanOrEqual(0);
+        expect(box.y + box.height, `${name} bottom`).toBeLessThanOrEqual(height);
+        expect(box.x + box.width, `${name} right`).toBeLessThanOrEqual(width);
+        // Every item must be reachable by pointer: the first as shown, the last after scrolling.
+        const reachable = (item: ReturnType<typeof menu.getByRole>) =>
+          item.evaluate((el) => {
+            const box = el.getBoundingClientRect();
+            const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+            return !!hit?.closest('[role=menuitem]');
+          });
+        const items = menu.getByRole('menuitem');
+        expect(await reachable(items.first()), `${name} first item`).toBe(true);
+        await items.last().scrollIntoViewIfNeeded();
+        expect(await reachable(items.last()), `${name} last item`).toBe(true);
+        await page.keyboard.press('Escape');
+      }
+    });
+  }
+}
+
+test('the output heading does not overlap at 1000px', async ({ page }) => {
   await page.setViewportSize({ width: 1000, height: 700 });
   await page.goto('/#format');
   await ready(page);
-  for (const name of ['Export', 'Convert']) {
-    await actions(page).getByRole('button', { name, exact: true }).click();
-    const menu = page.getByRole('menu', { name });
-    const box = (await menu.boundingBox())!;
-    expect(box.y, `${name} menu top`).toBeGreaterThanOrEqual(0);
-    expect(box.y + box.height, `${name} menu bottom`).toBeLessThanOrEqual(700);
-    expect(box.x + box.width, `${name} menu right`).toBeLessThanOrEqual(1000);
-    // The point at the last item's far edge must belong to the menu, not to a clipping ancestor.
-    const last = (await menu.getByRole('menuitem').last().boundingBox())!;
-    const reachable = await page.evaluate(
-      ({ x, y }) => !!document.elementFromPoint(x, y)?.closest('[role=menu]'),
-      { x: last.x + last.width - 6, y: last.y + last.height / 2 },
-    );
-    expect(reachable, `${name} menu is clipped`).toBe(true);
-    await page.keyboard.press('Escape');
-  }
   const heading = (await page
     .getByLabel('Output', { exact: true })
     .locator('.pane-heading')
@@ -329,11 +349,13 @@ test('every replacement offers Undo, and a newer message replaces the offer', as
   await page.getByLabel('Clear source', { exact: true }).click();
   await expect(toast).toBeVisible();
   await expect(source(page)).toHaveValue('');
+  await page.waitForTimeout(600); // an action ignores clicks for a moment, so a double-click cannot chain
   await toast.getByRole('button', { name: 'Undo' }).click();
   await expect(source(page)).not.toHaveValue('');
   await expect(
     page.getByRole('status').filter({ hasText: 'Undone' }).getByRole('button', { name: 'Redo' }),
   ).toBeVisible();
+  await page.waitForTimeout(600);
   await page.getByRole('status').getByRole('button', { name: 'Redo' }).click();
   await expect(source(page)).toHaveValue('');
   // Loading the sample is a replacement too.

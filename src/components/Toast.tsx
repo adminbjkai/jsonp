@@ -1,5 +1,9 @@
+import { useEffect, useRef } from 'react';
 import { Check, X } from 'lucide-react';
 import type { ToastState } from '../state/useToast';
+
+/** Clicks on a message's action are ignored for this long after it appears. */
+const ARM_DELAY = 500;
 
 /** A short confirmation, with an action such as Undo when the change can be reversed. */
 export default function Toast({
@@ -13,6 +17,11 @@ export default function Toast({
   onHold: () => void;
   onRelease: () => void;
 }) {
+  const armedAt = useRef(0);
+  const id = toast?.id;
+  useEffect(() => {
+    armedAt.current = performance.now() + ARM_DELAY;
+  }, [id]);
   if (!toast) return null;
   const { action } = toast;
   return (
@@ -31,6 +40,7 @@ export default function Toast({
         <button
           className="toast-action"
           onClick={() => {
+            if (performance.now() < armedAt.current) return;
             onDismiss();
             action.run();
           }}

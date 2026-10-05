@@ -202,3 +202,22 @@ test('explorer search highlights matching cards and dims the rest', async ({ pag
   await page.getByLabel('Search paths and values').fill('');
   await expect(page.locator('.graph-card.dim')).toHaveCount(0);
 });
+
+test('highlighted graph rows keep readable text in both themes', async ({ page }) => {
+  const { default: AxeBuilder } = await import('@axe-core/playwright');
+  await openGraph(page);
+  // "a" matches rows of every type, so objects, arrays, null, strings, and numbers all sit on the wash.
+  await page.getByLabel('Search paths and values').fill('a');
+  await expect(page.locator('.graph-row.match').first()).toBeVisible();
+  for (const theme of ['dark', 'light']) {
+    if (theme === 'light') await page.getByLabel('Use light theme', { exact: true }).click();
+    const report = await new AxeBuilder({ page })
+      .include('.graph-area')
+      .withRules(['color-contrast'])
+      .analyze();
+    expect(
+      report.violations.map((violation) => violation.nodes.map((node) => node.target)),
+      `${theme} theme`,
+    ).toEqual([]);
+  }
+});

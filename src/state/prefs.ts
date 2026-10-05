@@ -22,11 +22,17 @@ export function save(key: string, value: unknown) {
 
 export type Theme = 'dark' | 'light';
 
-/** The saved theme, or the operating system's preference on a first visit. */
+/** The theme the person chose, if any. Anything else counts as no choice. */
+export function storedTheme(): Theme | null {
+  const stored = saved<unknown>('jsonp.theme', null);
+  return stored === 'light' || stored === 'dark' ? stored : null;
+}
+
+/** The saved theme, or the operating system's preference until one is chosen. */
 export function initialTheme(): Theme {
-  const stored = saved<string | null>('jsonp.theme', null);
-  if (stored === 'light' || stored === 'dark') return stored;
-  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  return (
+    storedTheme() ?? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+  );
 }
 
 export type Mode = 'format' | 'workspace' | 'compare';

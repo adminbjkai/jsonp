@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { DRAFT_LIMIT, initialTheme, save, saved, type Theme } from './prefs';
+import { DRAFT_LIMIT, initialTheme, save, saved, storedTheme, type Theme } from './prefs';
 
 const THEME_COLOR: Record<Theme, string> = { dark: '#0d1119', light: '#edf0f5' };
 
@@ -21,8 +21,7 @@ export function useSettings(input: string) {
   useEffect(() => {
     const query = window.matchMedia('(prefers-color-scheme: light)');
     const follow = () => {
-      if (saved<string | null>('jsonp.theme', null) === null)
-        setThemeState(query.matches ? 'light' : 'dark');
+      if (storedTheme() === null) setThemeState(query.matches ? 'light' : 'dark');
     };
     query.addEventListener('change', follow);
     return () => query.removeEventListener('change', follow);

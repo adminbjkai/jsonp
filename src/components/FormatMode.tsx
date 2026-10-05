@@ -331,7 +331,7 @@ export default function FormatMode({ app }: { app: AppContext }) {
           </div>
         </div>
         <div className="formatter-view" role="tabpanel" aria-label={`${formatView} view`}>
-          {formatView === 'code' || !valid ? (
+          {expanded === 'input' ? null : formatView === 'code' || !valid ? (
             <OutputBody
               doc={doc}
               editor={editor}

@@ -97,7 +97,7 @@
   background: var(--selected);
 }
 .graph-row.match {
-  background: color-mix(in srgb, var(--graph-match) 22%, transparent);
+  background: color-mix(in srgb, var(--graph-match) 13%, transparent);
   box-shadow: inset 2px 0 0 var(--graph-match);
 }
 .graph-row-select {

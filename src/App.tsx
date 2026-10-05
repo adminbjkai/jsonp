@@ -329,7 +329,9 @@ export default function App() {
         <div className="drop-overlay">
           <Upload size={36} />
           <strong>Drop your file to open it</strong>
-          <span>JSON, YAML, XML, CSV, or Excel, up to 5 MiB. Processed on this device.</span>
+          <span>
+            JSON, YAML, XML, CSV, TSV, Excel, or ODS, up to 5 MiB. Processed on this device.
+          </span>
         </div>
       )}
       <ExportDialog

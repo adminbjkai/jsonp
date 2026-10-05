@@ -1,4 +1,13 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useCallback,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { ChevronDown } from 'lucide-react';
 export interface MenuItem {
   label: string;
@@ -25,22 +34,49 @@ export default function Menu({
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
-  const [alignRight, setAlignRight] = useState(false);
-  const [dropUp, setDropUp] = useState(false);
-  // Keep the menu inside the viewport: open rightward and downward unless that would overflow.
+  const [place, setPlace] = useState<CSSProperties | null>(null);
+  // The list is positioned in window coordinates, so no scrolling or clipping ancestor can cut it
+  // off. It opens below the button, or above when that side has more room, and scrolls inside
+  // itself when neither side fits it. It follows the button if the page scrolls or resizes.
+  const reposition = useCallback(() => {
+    const box = list.current,
+      anchor = button.current?.getBoundingClientRect();
+    if (!box || !anchor) return;
+    const margin = 8;
+    const width = box.offsetWidth;
+    const height = box.scrollHeight + 2;
+    const below = window.innerHeight - anchor.bottom - margin - 6;
+    const above = anchor.top - margin - 6;
+    const up = height > below && above > below;
+    const left =
+      anchor.left + width > window.innerWidth - margin
+        ? Math.max(margin, anchor.right - width)
+        : anchor.left;
+    setPlace({
+      left,
+      maxHeight: Math.max(96, Math.floor(up ? above : below)),
+      ...(up ? { bottom: window.innerHeight - anchor.top + 6 } : { top: anchor.bottom + 6 }),
+    });
+  }, []);
   useLayoutEffect(() => {
-    if (!open || !button.current || !list.current) return;
-    const anchor = button.current.getBoundingClientRect();
-    setAlignRight(anchor.left + list.current.offsetWidth > window.innerWidth - 8);
-    const room = window.innerHeight - anchor.bottom - 14;
-    setDropUp(list.current.offsetHeight > room && anchor.top > room);
-  }, [open]);
+    if (open) reposition();
+    else setPlace(null);
+  }, [open, reposition]);
   const focusItem = (index: number) => {
     const buttons = [
       ...(root.current?.querySelectorAll<HTMLButtonElement>('[role=menuitem]:not(:disabled)') ??
         []),
     ];
-    buttons.at(((index % buttons.length) + buttons.length) % buttons.length)?.focus();
+    const item = buttons.at(((index % buttons.length) + buttons.length) % buttons.length);
+    if (!item) return;
+    // Focus without scrolling the page (that would close the menu), then bring the item into view
+    // by scrolling the menu's own list.
+    item.focus({ preventScroll: true });
+    const box = list.current;
+    if (!box) return;
+    if (item.offsetTop < box.scrollTop) box.scrollTop = item.offsetTop - 5;
+    else if (item.offsetTop + item.offsetHeight > box.scrollTop + box.clientHeight)
+      box.scrollTop = item.offsetTop + item.offsetHeight - box.clientHeight + 5;
   };
   useEffect(() => {
     if (!open) return;
@@ -49,8 +85,14 @@ export default function Menu({
       if (!root.current?.contains(event.target as Node)) setOpen(false);
     };
     window.addEventListener('pointerdown', close);
-    return () => window.removeEventListener('pointerdown', close);
-  }, [open]);
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      window.removeEventListener('pointerdown', close);
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
+  }, [open, reposition]);
   return (
     <div className={`menu ${className}`} ref={root}>
       <button
@@ -72,7 +114,8 @@ export default function Menu({
       {open && (
         <div
           ref={list}
-          className={`menu-list ${alignRight ? 'align-right' : ''} ${dropUp ? 'drop-up' : ''}`}
+          className="menu-list"
+          style={place ?? { visibility: 'hidden' }}
           role="menu"
           id={id}
           aria-label={label}
