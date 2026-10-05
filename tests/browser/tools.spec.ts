@@ -9,7 +9,7 @@ test.beforeEach(async ({ context }) => {
 });
 
 const source = (page: Page) => page.getByLabel('JSON source');
-const rows = (page: Page) => page.getByLabel('JSON values').getByRole('listitem');
+const rows = (page: Page) => page.getByRole('tree', { name: 'JSON values' }).getByRole('treeitem');
 const clipboard = (page: Page) => page.evaluate(() => navigator.clipboard.readText());
 async function ready(page: Page) {
   await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
@@ -71,7 +71,7 @@ test('command palette finds and runs actions; menus transform losslessly', async
   await tool(page, 'Tools', 'Unescape JSON string');
   await expect(source(page)).toHaveValue('{\n  "a": {\n    "z": 1.50\n  }\n}');
   await ready(page);
-  await page.getByRole('button', { name: 'a Object(1)', exact: true }).click();
+  await page.getByRole('treeitem', { name: 'a Object(1)', exact: true }).click();
   await tool(page, 'Tools', 'Keep only the selected value');
   await expect(source(page)).toHaveValue('{\n  "z": 1.50\n}');
   // Disabled actions stay listed but cannot run.

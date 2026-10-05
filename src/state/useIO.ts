@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { MAX_INPUT } from '../lib/json';
 import { exportMapping } from '../lib/export';
-import { needsSource, type ExportKind } from '../lib/ird';
+import { needsSource, type ExportKind, type Role } from '../lib/ird';
 import { importFile, formatFromName } from '../lib/importFile';
 import { shareLink, readShared, MAX_SHARE_LENGTH } from '../lib/share';
 import type { DocumentState } from './useDocument';
@@ -18,7 +18,7 @@ interface Options {
 }
 
 const EXPORT_DONE: Record<ExportKind, string> = {
-  'example-target': 'Example target downloaded',
+  'example-tables': 'Example tables downloaded',
   'example-mapping': 'Completed example IRD downloaded',
   samples: 'Sample mapping downloaded',
   ird: 'IRD template downloaded',
@@ -82,12 +82,12 @@ export function useIO({ doc, notify, announce, mode, inputRef }: Options) {
     }
   };
 
-  const exportExcel = async (kind: ExportKind) => {
+  const exportExcel = async (kind: ExportKind, role: Role) => {
     if ((needsSource(kind) && !entries.length) || exporting) return false;
     setExporting(true);
     try {
-      await exportMapping(entries, kind);
-      notify(EXPORT_DONE[kind]);
+      await exportMapping(entries, kind, role);
+      notify(role === 'target' ? `${EXPORT_DONE[kind]} (JSON as target)` : EXPORT_DONE[kind]);
       return true;
     } catch {
       return false;

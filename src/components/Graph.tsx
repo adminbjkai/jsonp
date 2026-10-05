@@ -31,6 +31,7 @@ import {
 import 'reactflow/dist/style.css';
 import '../styles/graph.css';
 import { isContainer, type Entry } from '../lib/json';
+import { isColorValue } from '../lib/colors';
 
 /* ------------------------------------------------------------------ */
 /* Pure layout helpers (unit tested in tests/graph.test.ts)            */
@@ -249,9 +250,6 @@ export function exportPixelRatio(width: number, height: number, preferred = 2) {
   );
 }
 
-const HEX = /^#(?:[\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})$/i;
-const FUNCTIONAL = /^(?:rgba?|hsla?)\(\s*-?[\d.]+(?:deg|%)?(?:\s*[,\s/]\s*-?[\d.]+%?){2,3}\s*\)$/i;
-export const isColorValue = (value: string) => HEX.test(value) || FUNCTIONAL.test(value);
 export const isUrlValue = (value: string) => /^https?:\/\/[^\s"<>]+$/i.test(value);
 
 /* ------------------------------------------------------------------ */

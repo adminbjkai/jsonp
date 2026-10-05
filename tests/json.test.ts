@@ -7,10 +7,13 @@ import {
   jsPath,
   mappingRows,
   entryAtOffset,
+  entryAtOutput,
+  isContainer,
   entryMatcher,
   MAX_INPUT,
   EXAMPLE,
 } from '../src/lib/json';
+import { childPreview, highlightRanges, indexOfEntry } from '../src/lib/treeview';
 
 test('formats nested JSON with exact source and output ranges', () => {
   const source = '{"a": [1, {"b": true}], "empty": {}}';
@@ -226,4 +229,55 @@ test('explorer search matches exactly what scanning every path format would', ()
       assert.deepEqual(entries.filter(matcher(query)), expected, `query ${JSON.stringify(query)}`);
     }
   }
+});
+
+test('collapsed rows preview their first children; highlights find every occurrence', () => {
+  const { entries } = processJSON(
+    JSON.stringify({
+      settings: { theme: 'dark', size: 3, deep: { x: 1 }, list: [1], flag: true, more: null },
+      crew: [{ name: 'A' }, 'b', 7, [1], true],
+      empty: {},
+    }),
+  );
+  const at = (path: string) => entries.find((entry) => entry.path === path)!;
+  assert.equal(childPreview(entries, at('/settings')), 'theme, size, deep, list, …');
+  assert.equal(childPreview(entries, at('/crew')), '{…}, "b", 7, […], …');
+  assert.equal(childPreview(entries, at('/empty')), '');
+  assert.equal(childPreview(entries, at('/settings/deep')), 'x');
+  for (const entry of entries) assert.equal(entries[indexOfEntry(entries, entry)], entry);
+  assert.deepEqual(highlightRanges('Name of the name', 'NAME'), [
+    [0, 4],
+    [12, 16],
+  ]);
+  assert.deepEqual(highlightRanges('abc', ' '), []);
+  assert.equal(highlightRanges('aaaaaaaaaaaaaaaaaaaa', 'a').length, 8);
+});
+
+test('entryAtOutput finds the value or the member key under an offset in the formatted output', () => {
+  const { entries, output } = processJSON(
+    '{"a/b":{"0":9007199254740993},"x":[1,"two"],"q\\"k":null}',
+    2,
+  );
+  const at = (needle: string, shift = 0) =>
+    entryAtOutput(entries, output, output.indexOf(needle) + shift)?.path;
+  // Values: every character of a primitive maps to it; containers map to themselves at their start.
+  assert.equal(at('9007199254740993'), '/a~1b/0');
+  assert.equal(at('9007199254740993', 15), '/a~1b/0');
+  assert.equal(at('"two"', 2), '/x/1');
+  assert.equal(at('null', 3), '/q"k');
+  // Keys select their member, including a key with an escaped quote and the quotes themselves.
+  assert.equal(at('"a/b"'), '/a~1b');
+  assert.equal(at('"a/b"', 2), '/a~1b');
+  assert.equal(at('"a/b"', 4), '/a~1b');
+  assert.equal(at('"0"', 1), '/a~1b/0');
+  assert.equal(at('"x"', 1), '/x');
+  assert.equal(at('"q\\"k"', 3), '/q"k');
+  // Punctuation and indentation belong to the container around them.
+  assert.equal(entryAtOutput(entries, output, 0)?.path, '');
+  assert.equal(at('"x"', -2), '');
+  // Every primitive offset resolves to its own entry.
+  for (const entry of entries)
+    if (!isContainer(entry))
+      for (let offset = entry.outputStart; offset < entry.outputEnd; offset++)
+        assert.equal(entryAtOutput(entries, output, offset)?.path, entry.path);
 });

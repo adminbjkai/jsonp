@@ -40,7 +40,7 @@ test('graph collapses and expands branches and keeps selection behaviour', async
   await expect(page.locator('.graph-card')).toHaveCount(5);
 
   await page.locator('.graph-card-title').filter({ hasText: 'settings' }).click();
-  await expect(page.locator('.path-inspector')).toContainText('$.settings');
+  await expect(page.locator('.selected-path-copy')).toContainText('$.settings');
   await expect(card(page, 'settings')).toHaveClass(/selected/);
 
   await page.getByRole('button', { name: 'Show only this branch', exact: true }).click();

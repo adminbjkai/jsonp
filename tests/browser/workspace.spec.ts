@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { test, expect } from '@playwright/test';
 import { readXlsx, parseCellRef, rangeRef } from 'hucre/xlsx';
 import type { Workbook } from 'hucre/xlsx';
@@ -30,9 +31,17 @@ async function openExcel(page: Page) {
   await page.getByRole('menuitem', { name: 'Excel IRD workbook…' }).click();
 }
 
+/** One of the four workbook choices in the column for JSON as the source or the target. */
+const exportOption = (page: Page, role: 'source' | 'target', name: string) =>
+  page
+    .getByRole('group', { name: `JSON is the ${role}` })
+    .getByRole('radio', { name: new RegExp(`^${name}`) });
+
 test('formats accurately, selects escaped paths, searches, exports, and handles errors', async ({
   page,
+  context,
 }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
@@ -41,20 +50,22 @@ test('formats accurately, selects escaped paths, searches, exports, and handles 
     .getByLabel('JSON source')
     .fill('{"a/b":{"0":9007199254740993},"kind":"Object","nil":null}');
   await expect(page.getByText('5 values', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '0 9007199254740993', exact: true }).click();
-  await expect(page.locator('.path-inspector')).toContainText('/a~1b/0');
-  await expect(page.locator('.path-inspector')).toContainText('$["a/b"]["0"]');
+  await page.getByRole('treeitem', { name: '0 9007199254740993', exact: true }).click();
+  await expect(page.locator('.selected-path-copy')).toContainText('$["a/b"]["0"]');
+  await page.locator('.selection-bar').getByRole('button', { name: 'Copy as' }).click();
+  await page.getByRole('menuitem', { name: 'JSON Pointer' }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('/a~1b/0');
   const range = await page
     .getByLabel('JSON source')
     .evaluate((el: HTMLTextAreaElement) => el.value.slice(el.selectionStart, el.selectionEnd));
   expect(range).toBe('9007199254740993');
   await page.getByLabel('Search paths and values').fill('nil');
-  await expect(page.getByLabel('JSON values').getByRole('listitem')).toHaveCount(1);
+  await expect(page.getByLabel('JSON values').getByRole('treeitem')).toHaveCount(1);
   await page.getByLabel('Search paths and values').fill('');
   await page.getByLabel('Collapse all', { exact: true }).click();
-  await expect(page.getByLabel('JSON values').getByRole('listitem')).toHaveCount(1);
+  await expect(page.getByLabel('JSON values').getByRole('treeitem')).toHaveCount(1);
   await page.getByLabel('Expand all', { exact: true }).click();
-  await expect(page.getByLabel('JSON values').getByRole('listitem')).toHaveCount(5);
+  await expect(page.getByLabel('JSON values').getByRole('treeitem')).toHaveCount(5);
   const jsonDownload = page.waitForEvent('download');
   await page.getByLabel('Download JSON', { exact: true }).click();
   const json = await jsonDownload;
@@ -62,7 +73,7 @@ test('formats accurately, selects escaped paths, searches, exports, and handles 
   const { readFile } = await import('node:fs/promises');
   expect(await readFile((await json.path())!, 'utf8')).toContain('9007199254740993');
   await page.getByLabel('Export mapping to Excel', { exact: true }).click();
-  await page.getByRole('radio', { name: /^Mapping with samples/ }).check();
+  await exportOption(page, 'source', 'Mapping with samples').check();
   const excelDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download XLSX', exact: true }).click();
   const excel = await excelDownload;
@@ -104,7 +115,7 @@ test('graph loads on demand; layout controls and shortcuts work', async ({ page 
   await expect(page.locator('[data-pane]').first()).toHaveAttribute('data-pane', 'input');
   await page.getByRole('button', { name: 'Graph', exact: true }).click();
   await page.locator('.graph-card-title').filter({ hasText: 'settings' }).click();
-  await expect(page.locator('.path-inspector')).toContainText('$.settings');
+  await expect(page.locator('.selected-path-copy')).toContainText('$.settings');
   await page.getByLabel('Close graph', { exact: true }).click();
   await page.getByLabel('Collapse Explorer', { exact: true }).click();
   await page.getByRole('button', { name: 'Expand Explorer' }).click();
@@ -146,14 +157,14 @@ test('large documents stay virtualized and outdated results cannot overwrite edi
     .getByLabel('JSON source')
     .fill(JSON.stringify(Array.from({ length: 5000 }, (_, id) => ({ id, text: `record ${id}` }))));
   await expect(page.getByText('15,001 values', { exact: true })).toBeVisible();
-  expect(await page.getByLabel('JSON values').getByRole('listitem').count()).toBeLessThan(100);
+  expect(await page.getByLabel('JSON values').getByRole('treeitem').count()).toBeLessThan(100);
   expect(await page.locator('.code-line').count()).toBeLessThan(100);
   await page.getByLabel('Search paths and values').fill('record 4999');
-  await expect(page.getByLabel('JSON values').getByRole('listitem')).toHaveCount(1);
+  await expect(page.getByLabel('JSON values').getByRole('treeitem')).toHaveCount(1);
   await page.getByLabel('JSON source').fill('{"latest":true}');
   await expect(page.getByText('2 values', { exact: true })).toBeVisible();
   await page.getByLabel('Search paths and values').fill('');
-  await expect(page.getByLabel('JSON values').getByRole('listitem')).toHaveCount(2);
+  await expect(page.getByLabel('JSON values').getByRole('treeitem')).toHaveCount(2);
 });
 
 test('file import, keyboard formatting, source reset, and root copy work', async ({
@@ -168,8 +179,9 @@ test('file import, keyboard formatting, source reset, and root copy work', async
     buffer: Buffer.from('\uFEFF{"01":42,"":"yes"}'),
   });
   await expect(page.getByText('3 values', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'document Object(2)', exact: true }).click();
-  await page.getByLabel('Copy Pointer', { exact: true }).click();
+  await page.getByRole('treeitem', { name: 'document Object(2)', exact: true }).click();
+  await page.locator('.selection-bar').getByRole('button', { name: 'Copy as' }).click();
+  await page.getByRole('menuitem', { name: 'JSON Pointer' }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('');
   await page.getByLabel('JSON source').press('Control+Enter');
   await expect(page.getByLabel('JSON source')).toHaveValue('{\n  "01": 42,\n  "": "yes"\n}');
@@ -243,7 +255,7 @@ test('clean and blank IRD workbooks omit sample data and keep the sample export 
     );
   await expect(page.getByText('8 values', { exact: true })).toBeVisible();
   await openExcel(page);
-  await expect(page.getByRole('radio', { name: /^IRD mapping template/ })).toBeChecked();
+  await expect(exportOption(page, 'source', 'IRD mapping template')).toBeChecked();
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download XLSX', exact: true }).click();
   const file = await download;
@@ -264,8 +276,8 @@ test('clean and blank IRD workbooks omit sample data and keep the sample export 
   await page.getByLabel('Clear source', { exact: true }).click();
   await expect(page.getByText('Empty document', { exact: true })).toBeVisible();
   await openExcel(page);
-  await expect(page.getByRole('radio', { name: /^IRD mapping template/ })).toBeDisabled();
-  await expect(page.getByRole('radio', { name: /^Blank IRD template/ })).toBeChecked();
+  await expect(exportOption(page, 'source', 'IRD mapping template')).toBeDisabled();
+  await expect(exportOption(page, 'source', 'Blank IRD template')).toBeChecked();
   const blankDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download XLSX', exact: true }).click();
   const blankFile = await blankDownload;
@@ -286,7 +298,7 @@ test('inline paths, breadcrumbs, filtered navigation, and source reveal work', a
   await expect(page.locator('.inline-path')).toHaveCount(0);
   await page.getByRole('button', { name: 'Show paths', exact: true }).click();
   await expect(page.locator('.inline-path').filter({ hasText: '$.settings.theme' })).toBeVisible();
-  await page.getByRole('button', { name: 'theme #b5d68b', exact: true }).click();
+  await page.getByRole('treeitem', { name: 'theme #b5d68b', exact: true }).click();
   await expect(page.locator('.selected-path-copy')).toContainText('$.settings.theme');
   await page.getByLabel('Copy current JSONPath', { exact: true }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('$.settings.theme');
@@ -296,20 +308,21 @@ test('inline paths, breadcrumbs, filtered navigation, and source reveal work', a
     .click();
   await expect(page.locator('.selected-path-copy')).toContainText('$.settings');
   await page.getByLabel('Search paths and values').fill('$.crew[0].name');
-  await expect(page.getByLabel('JSON values').getByRole('listitem')).toHaveCount(1);
-  await page.getByRole('button', { name: '/crew/0/name Alex', exact: true }).click();
-  await page.getByRole('button', { name: 'Copy value', exact: true }).click();
+  await expect(page.getByLabel('JSON values').getByRole('treeitem')).toHaveCount(1);
+  await page.getByRole('treeitem', { name: '/crew/0/name Alex', exact: true }).click();
+  await page.getByRole('button', { name: 'Copy value of /crew/0/name', exact: true }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('"Alex"');
   await page.getByLabel('Path display format').selectOption('pointer');
   await expect(page.locator('.inline-path')).toHaveText('/crew/0/name');
   await page.getByLabel('Clear path search', { exact: true }).click();
-  await page.getByLabel('Next value', { exact: true }).click();
+  const tree = page.getByRole('tree', { name: 'JSON values' });
+  await tree.press('ArrowDown');
   await expect(page.locator('.selected-path-copy')).toContainText('$.crew[0].role');
-  await page.getByLabel('Path navigation', { exact: true }).press('ArrowUp');
+  await tree.press('ArrowUp');
   await expect(page.locator('.selected-path-copy')).toContainText('$.crew[0].name');
-  await page.getByLabel('Path navigation', { exact: true }).press('Control+c');
+  await tree.press('Control+c');
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('/crew/0/name');
-  await page.getByLabel('Path navigation', { exact: true }).press('Control+Shift+c');
+  await tree.press('Control+Shift+c');
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('\"Alex\"');
   await page.getByRole('button', { name: 'Go to source', exact: true }).click();
   await expect(page.getByLabel('JSON source')).toBeFocused();
@@ -317,9 +330,9 @@ test('inline paths, breadcrumbs, filtered navigation, and source reveal work', a
     .getByLabel('JSON source')
     .evaluate((el: HTMLTextAreaElement) => el.value.slice(el.selectionStart, el.selectionEnd));
   expect(range).toBe('"Alex"');
-  await page.getByLabel('Path navigation', { exact: true }).press('End');
+  await tree.press('End');
   await expect(page.locator('.selected-path-copy')).toContainText('$.nextLaunch');
-  await page.getByLabel('Path navigation', { exact: true }).press('Home');
+  await tree.press('Home');
   await expect(page.locator('.selected-path-copy code')).toHaveText('$');
 });
 
@@ -332,7 +345,7 @@ test('mobile source jump opens the editor from the explorer', async ({ page }) =
     .getByRole('button', { name: 'Explorer' })
     .click();
   await page.getByLabel('Search paths and values').fill('refreshInterval');
-  await page.getByRole('button', { name: '/settings/refreshInterval 30', exact: true }).click();
+  await page.getByRole('treeitem', { name: '/settings/refreshInterval 30', exact: true }).click();
   await expect(page.locator('.selected-path-copy')).toContainText('$.settings.refreshInterval');
   await page.getByRole('button', { name: 'Go to source', exact: true }).click();
   await expect(page.getByLabel('JSON source')).toBeVisible();
@@ -345,7 +358,7 @@ test('known target and completed mapping downloads share a schema and ignore the
   await page.goto('/');
   await page.getByLabel('JSON source').fill('{"private":"EDITOR_SECRET_EXCLUDED"}');
   await openExcel(page);
-  await page.getByRole('radio', { name: /^Known-target worked example/ }).check();
+  await exportOption(page, 'source', 'Known-target worked example').check();
   const targetDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download target XLSX', exact: true }).click();
   const target = await targetDownload;
@@ -375,7 +388,7 @@ test('known target and completed mapping downloads share a schema and ignore the
   expect(allRows(workbook)).not.toContain('EDITOR_SECRET_EXCLUDED');
   await page.getByLabel('JSON source').fill('invalid');
   await openExcel(page);
-  await page.getByRole('radio', { name: /^Known-target worked example/ }).check();
+  await exportOption(page, 'source', 'Known-target worked example').check();
   await expect(
     page.getByRole('button', { name: 'Download target XLSX', exact: true }),
   ).toBeEnabled();
@@ -383,6 +396,96 @@ test('known target and completed mapping downloads share a schema and ignore the
   await page.getByRole('button', { name: 'Download completed IRD', exact: true }).click();
   const empty = await readWorkbook(await (await emptyDownload).path());
   expect(sheet(empty, 'Field Mapping')).toEqual(sheet(completed, 'Field Mapping'));
+});
+
+test('JSON as the target has its own column with the same four workbooks', async ({ page }) => {
+  await page.goto('/');
+  await page
+    .getByLabel('JSON source')
+    .fill(
+      '{"crew":[{"name":"SAMPLE_SECRET_ONE","score":123},{"name":"SAMPLE_SECRET_TWO","score":456}]}',
+    );
+  await expect(page.getByText('8 values', { exact: true })).toBeVisible();
+  await openExcel(page);
+  await expect(exportOption(page, 'source', 'IRD mapping template')).toBeChecked();
+  for (const role of ['source', 'target'] as const)
+    await expect(
+      page.getByRole('group', { name: `JSON is the ${role}` }).getByRole('radio'),
+    ).toHaveCount(4);
+
+  // Choosing a target option unchecks the source one: it is a single choice across both columns.
+  await exportOption(page, 'target', 'IRD mapping template').check();
+  await expect(exportOption(page, 'source', 'IRD mapping template')).not.toBeChecked();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download XLSX', exact: true }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/^IRD_Target_Template_/);
+  const workbook = await readWorkbook(await file.path());
+  expect(names(workbook)).toEqual(['Overview', 'Field Mapping', 'Instructions']);
+  expect(allRows(workbook)).not.toContain('SAMPLE_SECRET');
+  const [header, ...body] = sheet(workbook, 'Field Mapping').rows;
+  expect(header).toEqual([
+    'Mapping ID',
+    'Source Field / Path',
+    'Source Type',
+    'Target Field',
+    'Target JSONPath',
+    'Target Type',
+    'Required',
+    'Cardinality',
+    'Transformation / Business Rule',
+    'Default Value',
+    'Validation / Constraints',
+    'Description',
+  ]);
+  expect(body.map((row) => row[4])).toEqual(['$.crew', '$.crew[*].name', '$.crew[*].score']);
+  expect(body.every((row) => row[1] === '' && row[2] === '')).toBe(true);
+  await page.getByRole('status').filter({ hasText: 'JSON as target' }).waitFor();
+});
+
+test('known-source example and the target blank template work without valid JSON', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByLabel('JSON source').fill('{"private":"EDITOR_SECRET_EXCLUDED"');
+  await openExcel(page);
+  await expect(exportOption(page, 'target', 'IRD mapping template')).toBeDisabled();
+  await expect(exportOption(page, 'target', 'Mapping with samples')).toBeDisabled();
+  await exportOption(page, 'target', 'Known-source worked example').check();
+  await expect(page.getByText('2 source tables · 11 completed mappings')).toBeVisible();
+  const sourceDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download source XLSX', exact: true }).click();
+  const source = await sourceDownload;
+  expect(source.suggestedFilename()).toMatch(/^Orbital_Source_Example_/);
+  const tables = await readWorkbook(await source.path());
+  expect(names(tables)).toEqual([
+    'Overview',
+    'Source Fields',
+    'Projects',
+    'Crew',
+    'Target JSON',
+    'Instructions',
+  ]);
+  const mappingDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download completed IRD', exact: true }).click();
+  const mapping = await mappingDownload;
+  expect(mapping.suggestedFilename()).toMatch(/^Orbital_Completed_Target_IRD_/);
+  const completed = await readWorkbook(await mapping.path());
+  expect(usedRange(completed, 'Field Mapping')).toBe('A1:L12');
+  expect(cellAt(completed, 'Field Mapping', 'B2')).toBe('Projects.project_name');
+  expect(cellAt(completed, 'Field Mapping', 'E12')).toBe('$.crew[*].role');
+  expect(allRows(completed)).not.toContain('EDITOR_SECRET_EXCLUDED');
+  expect(allRows(tables)).not.toContain('EDITOR_SECRET_EXCLUDED');
+
+  await openExcel(page);
+  await exportOption(page, 'target', 'Blank IRD template').check();
+  const blankDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download XLSX', exact: true }).click();
+  const blankFile = await blankDownload;
+  expect(blankFile.suggestedFilename()).toMatch(/^IRD_Target_Blank_Template_/);
+  const blank = await readWorkbook(await blankFile.path());
+  expect(usedRange(blank, 'Field Mapping')).toBe('A1:L31');
+  expect(cellAt(blank, 'Field Mapping', 'E1')).toBe('Target JSONPath');
 });
 
 test('narrow panes keep every pane control reachable', async ({ page }) => {
@@ -412,4 +515,190 @@ test('narrow panes keep every pane control reachable', async ({ page }) => {
       }).length,
   );
   expect(outside).toBe(0);
+});
+
+test('Workspace find shows the live path for each match and follows it in every pane', async ({
+  page,
+}) => {
+  await page.goto('/#workspace');
+  await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+  await page
+    .getByLabel('JSON source')
+    .fill('{"a":{"name":"x"},"b":{"name":"y"},"c":[{"name":"z"}]}');
+  await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+  const find = page.getByLabel('Search paths and values');
+  await find.fill('name');
+  const chip = page.locator('.selected-path-copy code');
+  await expect(chip).toHaveText('$.a.name');
+  await find.press('Enter');
+  await expect(chip).toHaveText('$.b.name');
+  // The explorer, formatted code, and source all point at the same value.
+  await expect(page.locator('.path-row.selected')).toContainText('/b/name');
+  await expect(page.locator('.code-line.highlighted')).toContainText('"name": "y"');
+  const picked = await page
+    .getByLabel('JSON source')
+    .evaluate((el: HTMLTextAreaElement) => el.value.slice(el.selectionStart, el.selectionEnd));
+  expect(picked).toBe('"y"');
+  await find.press('Enter');
+  await expect(chip).toHaveText('$.c[0].name');
+  await page.getByLabel('Previous match').click();
+  await expect(chip).toHaveText('$.b.name');
+});
+
+test('the tree follows the ARIA tree keyboard model and shows what is inside collapsed branches', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto('/#workspace');
+  await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+  const tree = page.getByRole('tree', { name: 'JSON values' });
+  const chip = page.locator('.selected-path-copy code');
+  await tree.getByRole('treeitem', { name: 'project Orbital' }).click();
+  await expect(chip).toHaveText('$.project');
+  // Levels and expansion are exposed to assistive technology.
+  await expect(tree.getByRole('treeitem', { name: /^settings / })).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  );
+  await expect(tree.getByRole('treeitem', { name: 'theme #b5d68b' })).toHaveAttribute(
+    'aria-level',
+    '3',
+  );
+  // Down to a branch, Left collapses it and shows a preview of its keys, Right opens it again.
+  await tree.press('ArrowDown');
+  await tree.press('ArrowDown');
+  await tree.press('ArrowDown');
+  await expect(chip).toHaveText('$.settings');
+  await tree.press('ArrowLeft');
+  const settings = tree.getByRole('treeitem', { name: /^settings / });
+  await expect(settings).toHaveAttribute('aria-expanded', 'false');
+  await expect(settings).toContainText('3 keys');
+  await expect(settings).toContainText('{ theme, notifications, refreshInterval }');
+  await tree.press('ArrowRight');
+  await expect(settings).toHaveAttribute('aria-expanded', 'true');
+  // Right on an open branch enters it; Left on a leaf goes back to its parent.
+  await tree.press('ArrowRight');
+  await expect(chip).toHaveText('$.settings.theme');
+  await tree.press('ArrowLeft');
+  await expect(chip).toHaveText('$.settings');
+  // Enter toggles, type-ahead jumps by key name, End and Home go to the ends.
+  await tree.press('Enter');
+  await expect(settings).toHaveAttribute('aria-expanded', 'false');
+  await tree.press('Enter');
+  await tree.pressSequentially('next');
+  await expect(chip).toHaveText('$.nextLaunch');
+  await tree.press('Home');
+  await expect(chip).toHaveText('$');
+  // A colour value shows its swatch; row actions copy the value exactly as written.
+  await expect(
+    tree.getByRole('treeitem', { name: 'theme #b5d68b' }).locator('.tree-swatch'),
+  ).toBeVisible();
+  await tree.getByRole('treeitem', { name: 'theme #b5d68b' }).hover();
+  await page.getByRole('button', { name: 'Copy value of /settings/theme' }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('"#b5d68b"');
+  // Search matches are marked in the tree.
+  await page.getByLabel('Search paths and values').fill('orb');
+  await expect(tree.locator('mark')).toHaveText('Orb');
+});
+
+test('clicks in the formatted code, repeated keys, blank queries, and collapsing keep the tree honest', async ({
+  page,
+}) => {
+  await page.goto('/#format');
+  await page
+    .getByLabel('JSON source')
+    .fill('{"a/b":{"0":9007199254740993},"dup":{"name":"d1","name":"d2"},"list":[1,2,3]}');
+  await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+  // Click a value, then a key, in the Code view.
+  await page
+    .getByRole('tablist', { name: 'Output view' })
+    .getByRole('tab', { name: 'Code' })
+    .click();
+  const code = page.locator('#output-pre');
+  await code.getByText('9007199254740993', { exact: true }).click();
+  await expect(page.locator('.selected-path-copy')).toContainText('$["a/b"]["0"]');
+  await code.getByText('"list":').click();
+  await expect(page.locator('.selected-path-copy')).toContainText('$.list');
+  // Selecting text by dragging does not change the selection.
+  const before = await page.locator('.selected-path-copy').textContent();
+  const box = (await code.getByText('"dup":').boundingBox())!;
+  await page.mouse.move(box.x + 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2, { steps: 6 });
+  await page.mouse.up();
+  expect(await page.locator('.selected-path-copy').textContent()).toBe(before);
+  // A repeated key counts once per path, so every step lands on a value that can be shown.
+  await page.getByLabel('Search paths and values').fill('dup');
+  await expect(page.getByRole('status').filter({ hasText: 'matches' })).toHaveText(/of 2 matches/);
+  // A blank query is not a search: the tree keeps its structure.
+  await page
+    .getByRole('tablist', { name: 'Output view' })
+    .getByRole('tab', { name: 'Tree' })
+    .click();
+  await page.getByLabel('Search paths and values').fill('   ');
+  await expect(page.getByRole('treeitem').first()).toHaveAttribute('aria-level', '1');
+  await expect(page.getByRole('treeitem', { name: /^a\/b / })).toHaveAttribute('aria-level', '2');
+});
+
+test('collapsing keeps the scroll position, and a collapsed preview meets contrast', async ({
+  page,
+}) => {
+  await page.goto('/#format');
+  const items = Array.from({ length: 2000 }, (_, i) => ({ id: i, tag: `t${i}` }));
+  await page.getByLabel('JSON source').fill(JSON.stringify({ items, other: { a: 1, b: 2 } }));
+  await expect(page.locator('.stats-button')).toHaveText('6,005 values');
+  await page
+    .getByRole('tablist', { name: 'Output view' })
+    .getByRole('tab', { name: 'Tree' })
+    .click();
+  const scroller = page.locator('.explorer-scroll');
+  await scroller.evaluate((el) => (el.scrollTop = 30000));
+  await expect.poll(() => scroller.evaluate((el) => el.scrollTop)).toBeGreaterThan(29000);
+  const row = page.getByRole('treeitem').first();
+  await row.click();
+  await page.keyboard.press('ArrowLeft');
+  expect(await scroller.evaluate((el) => el.scrollTop)).toBeGreaterThan(1000);
+  await scroller.evaluate((el) => (el.scrollTop = 0));
+  // Collapsing the root shows its preview.
+  await page.keyboard.press('Home');
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('.tree-preview')).toBeVisible();
+  const violations = await new AxeBuilder({ page })
+    .include('.explorer-scroll')
+    .withTags(['wcag2a', 'wcag2aa'])
+    .analyze();
+  expect(violations.violations.map((v) => v.id)).toEqual([]);
+});
+
+test('a phone-sized Workspace leaves the explorer usable room while searching', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 667 });
+  await page.goto('/#workspace');
+  await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Explorer', exact: true }).click();
+  await page.getByLabel('Search paths and values').fill('o');
+  const scroller = page.locator('.explorer-scroll');
+  await expect(scroller).toBeVisible();
+  expect((await scroller.boundingBox())!.height).toBeGreaterThan(160);
+  await page.getByLabel('Search paths and values').fill('zzzz-nothing');
+  const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  expect(axe.violations.map((v) => v.id)).toEqual([]);
+});
+
+test('the export columns line up row for row at desktop width', async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.goto('/');
+  await openExcel(page);
+  const tops = async (role: string) =>
+    page
+      .getByRole('group', { name: `JSON is the ${role}` })
+      .locator('.export-option')
+      .evaluateAll((labels) =>
+        labels.map((label) => Math.round(label.getBoundingClientRect().top)),
+      );
+  const [source, target] = [await tops('source'), await tops('target')];
+  // Rows share their height, so tops agree to within sub-pixel rounding.
+  source.forEach((top, index) => expect(Math.abs(top - target[index])).toBeLessThanOrEqual(1));
 });

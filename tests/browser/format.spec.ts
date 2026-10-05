@@ -60,9 +60,9 @@ test('output switches between code, tree, table, and graph views', async ({ page
   await ready(page);
   const tabs = page.getByRole('tablist', { name: 'Output view' });
   await tabs.getByRole('tab', { name: 'Tree' }).click();
-  await expect(page.getByLabel('JSON values').getByRole('listitem').first()).toBeVisible();
+  await expect(page.getByLabel('JSON values').getByRole('treeitem').first()).toBeVisible();
   await page.getByLabel('Search paths and values').fill('$.crew[*].name');
-  await expect(page.getByLabel('JSON values').getByRole('listitem')).toHaveCount(2);
+  await expect(page.getByLabel('JSON values').getByRole('treeitem')).toHaveCount(2);
   await tabs.getByRole('tab', { name: 'Table' }).click();
   await expect(page.getByRole('table')).toBeVisible();
   await tabs.getByRole('tab', { name: 'Graph' }).click();
@@ -192,14 +192,14 @@ test('Ctrl+Enter in compare mode compares instead of formatting the main documen
   await expect(source(page)).toHaveValue('{"keep":   "spacing"}');
 });
 
-test('Ctrl+F opens the tree search from any output view', async ({ page }) => {
+test('Ctrl+F focuses Find from any output view without changing it', async ({ page }) => {
   await page.goto('/#format');
   await ready(page);
   await page.getByRole('tab', { name: 'Table' }).click();
   await actions(page).getByRole('button', { name: 'Validate' }).focus();
   await page.keyboard.press('Control+f');
   await expect(page.getByLabel('Search paths and values')).toBeFocused();
-  await expect(page.getByRole('tab', { name: 'Tree' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: 'Table' })).toHaveAttribute('aria-selected', 'true');
 });
 
 test('a share link pasted into an open tab loads, and a bad saved mode falls back', async ({
@@ -380,4 +380,84 @@ test('pages have a heading and Compare has a main landmark', async ({ page }) =>
     await expect(page.getByRole('heading', { level: 1, name: 'JSON Prettify' })).toBeAttached();
     await expect(page.getByRole('main')).toHaveCount(1);
   }
+});
+
+const BRANCHES = '{"a":{"name":"x"},"b":{"name":"y"},"c":[{"name":"z"}],"note":"a name inside"}';
+const pathChip = (page: Page) => page.locator('.selected-path-copy code');
+
+test('Find steps through every match and always shows its exact path (Format)', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto('/#format');
+  await ready(page);
+  await source(page).fill(BRANCHES);
+  await ready(page);
+  const find = page.getByLabel('Search paths and values');
+  // The same key under different branches: each step names the branch it is in.
+  await find.fill('name');
+  await expect(page.getByRole('status').filter({ hasText: '1 of 4 matches' })).toBeVisible();
+  const highlighted = output(page).locator('.code-line.highlighted');
+  const stops: [string, string][] = [
+    ['$.a.name', '"name": "x"'],
+    ['$.b.name', '"name": "y"'],
+    ['$.c[0].name', '"name": "z"'],
+  ];
+  for (const [index, [path, line]] of stops.entries()) {
+    if (index) await find.press('Enter');
+    await expect(pathChip(page)).toHaveText(path);
+    await expect(highlighted).toContainText(line);
+    await expect(page.locator('.path-value')).toHaveText(line.slice(-2, -1));
+  }
+  // Wraps past the end and steps back with Shift+Enter, in value text too.
+  await find.press('Enter');
+  await expect(pathChip(page)).toHaveText('$.note');
+  await find.press('Enter');
+  await expect(pathChip(page)).toHaveText('$.a.name');
+  await find.press('Shift+Enter');
+  await expect(pathChip(page)).toHaveText('$.note');
+  await page.getByLabel('Previous match').click();
+  await expect(pathChip(page)).toHaveText('$.c[0].name');
+  // Copy the path in other formats, or the value.
+  await page.getByRole('button', { name: 'Copy as' }).click();
+  await page.getByRole('menuitem', { name: 'JSON Pointer' }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('/c/0/name');
+  await page.getByRole('button', { name: 'Copy as' }).click();
+  await page.getByRole('menuitem', { name: 'Value', exact: true }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('"z"');
+  await page.getByRole('button', { name: 'Copy as' }).click();
+  await page.getByRole('menuitem', { name: 'Path and value' }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('$.c[0].name = "z"');
+  // A path fragment finds the values under it; Escape clears the search.
+  await find.fill('c/0');
+  // The selected value is one of the matches, so refining the search keeps it in place.
+  await expect(page.getByRole('status').filter({ hasText: '2 of 2 matches' })).toBeVisible();
+  await expect(pathChip(page)).toHaveText('$.c[0].name');
+  await find.press('Shift+Enter');
+  await expect(pathChip(page)).toHaveText('$.c[0]');
+  await find.press('Escape');
+  await expect(find).toHaveValue('');
+});
+
+test('JSONPath queries step through results the same way in the graph', async ({ page }) => {
+  await page.goto('/#format');
+  await ready(page);
+  await source(page).fill(BRANCHES);
+  await ready(page);
+  await page.getByRole('tab', { name: 'Graph' }).click();
+  const find = page.getByLabel('Search paths and values');
+  await find.fill('$..name');
+  await expect(page.getByRole('status').filter({ hasText: '1 of 3 query results' })).toBeVisible();
+  await expect(pathChip(page)).toHaveText('$.a.name');
+  await find.press('Enter');
+  await expect(pathChip(page)).toHaveText('$.b.name');
+  await expect(page.locator('.graph-row.active')).toContainText('y');
+  await find.press('Enter');
+  await expect(pathChip(page)).toHaveText('$.c[0].name');
+  // Clicking a value in the graph shows its path as well.
+  await page.getByLabel('Fit graph').click();
+  await page.waitForTimeout(700); // the view glides to fit before it settles
+  await page.locator('.graph-row-select[title="name: x"]').click();
+  await expect(pathChip(page)).toHaveText('$.a.name');
 });

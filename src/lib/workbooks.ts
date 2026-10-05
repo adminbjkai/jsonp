@@ -2,21 +2,22 @@ import { writeXlsx, rangeRef } from 'hucre/xlsx';
 import type { CellStyle, CellValue, Cell, WriteSheet } from 'hucre/xlsx';
 import { mappingRows, type MappingEntry } from './json';
 import {
-  IRD_HEADERS,
+  IRD_COLUMNS,
   IRD_OVERVIEW,
-  IRD_INSTRUCTIONS,
+  irdInstructions,
   irdRows,
   blankIRDRows,
   type ExportKind,
+  type Role,
 } from './ird';
 import {
-  TARGET_FIELDS,
-  TARGET_PROJECTS,
-  TARGET_CREW,
-  EXAMPLE_MAPPING,
-  EXAMPLE_OVERVIEW,
-  EXAMPLE_SOURCE,
-  EXAMPLE_GUIDE,
+  TABLE_FIELDS,
+  TABLE_PROJECTS,
+  TABLE_CREW,
+  exampleMapping,
+  exampleOverview,
+  exampleJson,
+  exampleGuide,
 } from './mapping-example';
 
 type Row = Record<string, string | number>;
@@ -90,31 +91,37 @@ const info = (name: string, rows: string[][], widths: number[]): WriteSheet => (
   rows: rows.map((row, index) => row.map((value) => cell(value, index ? undefined : HEADER))),
 });
 
-export function buildWorkbook(kind: ExportKind, entries: MappingEntry[]): Promise<Uint8Array> {
+export function buildWorkbook(
+  kind: ExportKind,
+  entries: MappingEntry[],
+  role: Role = 'source',
+): Promise<Uint8Array> {
   const sheets: WriteSheet[] = [];
-  if (kind === 'example-target' || kind === 'example-mapping') {
-    sheets.push(info('Overview', EXAMPLE_OVERVIEW, [34, 110]));
-    if (kind === 'example-mapping') sheets.push(table('Field Mapping', EXAMPLE_MAPPING));
+  if (kind === 'example-tables' || kind === 'example-mapping') {
+    sheets.push(info('Overview', exampleOverview(role), [34, 110]));
+    if (kind === 'example-mapping') sheets.push(table('Field Mapping', exampleMapping(role)));
     sheets.push(
-      table('Target Fields', TARGET_FIELDS),
-      table('Projects', TARGET_PROJECTS),
-      table('Crew', TARGET_CREW),
-      info('Source JSON', EXAMPLE_SOURCE, [34, 110]),
-      info('Instructions', EXAMPLE_GUIDE, [34, 110]),
+      table(role === 'source' ? 'Target Fields' : 'Source Fields', TABLE_FIELDS),
+      table('Projects', TABLE_PROJECTS),
+      table('Crew', TABLE_CREW),
+      info(role === 'source' ? 'Source JSON' : 'Target JSON', exampleJson(role), [34, 110]),
+      info('Instructions', exampleGuide(role), [34, 110]),
     );
   } else if (kind === 'samples') {
-    sheets.push(table('Data_Mapping_IRD', mappingRows(entries)));
+    sheets.push(table('Data_Mapping_IRD', mappingRows(entries, role)));
   } else {
-    const fields = kind === 'blank' ? [] : irdRows(entries);
+    const fields = kind === 'blank' ? [] : irdRows(entries, role);
     sheets.push(
       info('Overview', IRD_OVERVIEW, [52, 70]),
       {
-        ...table('Field Mapping', fields.length ? fields : blankIRDRows(), [...IRD_HEADERS]),
+        ...table('Field Mapping', fields.length ? fields : blankIRDRows(role), [
+          ...IRD_COLUMNS[role],
+        ]),
         pageSetup: {
           margins: { left: 0.3, right: 0.3, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 },
         },
       },
-      info('Instructions', IRD_INSTRUCTIONS, [34, 110]),
+      info('Instructions', irdInstructions(role), [34, 110]),
     );
   }
   return writeXlsx({ sheets });

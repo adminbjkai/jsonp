@@ -37,7 +37,6 @@ export function useEditor({ doc, layout, notify, announce }: Options) {
       scrollSource(entry.start);
       return true;
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [entryMap, input],
   );
   /** Follows the caret in Source to the value under it. */

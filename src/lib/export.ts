@@ -1,5 +1,5 @@
 import type { Entry } from './json';
-import { needsSource, type ExportKind } from './ird';
+import { needsSource, type ExportKind, type Role } from './ird';
 export function download(content: BlobPart, name: string, type = 'application/json') {
   const url = URL.createObjectURL(new Blob([content], { type }));
   const anchor = document.createElement('a');
@@ -8,7 +8,27 @@ export function download(content: BlobPart, name: string, type = 'application/js
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-export async function exportMapping(entries: Entry[], kind: ExportKind = 'samples') {
+const FILE_NAMES: Record<Role, Record<ExportKind, string>> = {
+  source: {
+    samples: 'IRD_Mapping',
+    blank: 'IRD_Blank_Template',
+    ird: 'IRD_Mapping_Template',
+    'example-tables': 'Orbital_Target_Example',
+    'example-mapping': 'Orbital_Completed_IRD',
+  },
+  target: {
+    samples: 'IRD_Target_Mapping',
+    blank: 'IRD_Target_Blank_Template',
+    ird: 'IRD_Target_Template',
+    'example-tables': 'Orbital_Source_Example',
+    'example-mapping': 'Orbital_Completed_Target_IRD',
+  },
+};
+export async function exportMapping(
+  entries: Entry[],
+  kind: ExportKind = 'samples',
+  role: Role = 'source',
+) {
   const buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
     const worker = new Worker(new URL('../workers/export.worker.ts', import.meta.url), {
       type: 'module',
@@ -32,6 +52,7 @@ export async function exportMapping(entries: Entry[], kind: ExportKind = 'sample
     };
     worker.postMessage({
       kind,
+      role,
       entries: !needsSource(kind)
         ? []
         : entries.map(({ path, parts, type, value }) => ({
@@ -44,7 +65,7 @@ export async function exportMapping(entries: Entry[], kind: ExportKind = 'sample
   });
   download(
     buffer,
-    `${{ samples: 'IRD_Mapping', blank: 'IRD_Blank_Template', ird: 'IRD_Mapping_Template', 'example-target': 'Orbital_Target_Example', 'example-mapping': 'Orbital_Completed_IRD' }[kind]}_${new Date().toISOString().slice(0, 10)}.xlsx`,
+    `${FILE_NAMES[role][kind]}_${new Date().toISOString().slice(0, 10)}.xlsx`,
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   );
 }

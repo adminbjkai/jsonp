@@ -44,6 +44,28 @@ export function entryAtOffset(entries: Entry[], offset: number): Entry | undefin
   for (let i = low - 1; i >= 0; i--) if (offset < entries[i].end) return entries[i];
   return undefined;
 }
+/**
+ * The entry at an offset in the formatted output: the innermost value covering it, or the member
+ * whose key the offset falls in (the output records where values start, not keys).
+ */
+export function entryAtOutput(entries: Entry[], output: string, offset: number): Entry | undefined {
+  let low = 0,
+    high = entries.length;
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if (entries[mid].outputStart <= offset) low = mid + 1;
+    else high = mid;
+  }
+  const next = entries[low];
+  if (
+    next &&
+    typeof next.parts.at(-1) === 'string' &&
+    /^"?(?:[^"\\]|\\.)*"\s*:\s*$/.test(output.slice(offset, next.outputStart))
+  )
+    return next;
+  for (let i = low - 1; i >= 0; i--) if (offset < entries[i].outputEnd) return entries[i];
+  return undefined;
+}
 export const pointer = (parts: (string | number)[]) =>
   parts.length
     ? '/' + parts.map((p) => String(p).replace(/~/g, '~0').replace(/\//g, '~1')).join('/')
@@ -248,7 +270,8 @@ export function processJSON(source: string, indent: Indent = 2): DocumentResult 
   }
 }
 
-export function mappingRows(entries: MappingEntry[]) {
+/** Every value with its exact path. The blank mapping column names the other side of the interface. */
+export function mappingRows(entries: MappingEntry[], role: 'source' | 'target' = 'source') {
   return entries.map((entry) => ({
     Level: entry.parts.length,
     'Field Name': entry.parts.length ? String(entry.parts.at(-1)) : 'root',
@@ -257,7 +280,7 @@ export function mappingRows(entries: MappingEntry[]) {
     'JSONPath Reference': jsonPath(entry.parts),
     'JSON Pointer': entry.path,
     'Requirement ID': '',
-    'Mapping Target': '',
+    [role === 'source' ? 'Mapping Target' : 'Mapping Source']: '',
     'Business Rule / Logic': '',
     Description: '',
   }));

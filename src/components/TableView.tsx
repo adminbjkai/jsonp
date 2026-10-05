@@ -148,7 +148,7 @@ export default function TableView({ entries, active, select, onConvert }: Props)
             </option>
           ))}
         </select>
-        <label className="search table-filter">
+        <label className="table-filter">
           <Search size={14} />
           <input
             aria-label="Filter rows"

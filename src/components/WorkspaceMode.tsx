@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import Menu from './Menu';
 import OutputBody from './OutputBody';
-import PathBar from './PathBar';
+import LookupBar from './LookupBar';
 import SourcePane from './SourcePane';
 import { download } from '../lib/export';
 import { INDENTS, indentKey } from '../actions';
@@ -37,7 +37,7 @@ const MIN_PANE = 240;
 export default function WorkspaceMode({ app }: { app: AppContext }) {
   const { doc, editor, io, actions, settings, layout, dialogs, notify, views } = app;
   const { order, collapsed, focused, mobilePane } = layout;
-  const { selected, input, output, repair, valid } = doc;
+  const { input, output, repair, valid } = doc;
   const dragPane = useRef<Pane | null>(null);
   const resizeCleanup = useRef<(() => void) | null>(null);
   useEffect(() => () => resizeCleanup.current?.(), []);
@@ -337,7 +337,7 @@ export default function WorkspaceMode({ app }: { app: AppContext }) {
           <RotateCcw size={15} />
         </button>
       </section>
-      <PathBar entry={selected} select={editor.select} reveal={editor.reveal} copy={io.copy} />
+      <LookupBar app={app} />
       <nav className="pane-tabs" aria-label="Workspace panes">
         {[...order, ...(['table', 'graph'] as const).filter((p) => !order.includes(p))].map(
           (pane) => (

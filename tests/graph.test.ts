@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as nodeModule from 'node:module';
 import { processJSON } from '../src/lib/json';
+import { isColorValue } from '../src/lib/colors';
 
 // Graph.tsx imports stylesheets; let Node treat them as empty modules.
 const CSS = { format: 'module' as const, source: '', shortCircuit: true };
@@ -23,7 +24,6 @@ const {
   countVisible,
   cardChain,
   exportPixelRatio,
-  isColorValue,
   isUrlValue,
   CARD_WIDTH,
   MAX_VISIBLE_CARDS,

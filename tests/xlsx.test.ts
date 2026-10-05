@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readXlsx } from 'hucre/xlsx';
 import type { Workbook } from 'hucre/xlsx';
 import { processJSON } from '../src/lib/json';
-import { IRD_HEADERS } from '../src/lib/ird';
+import { IRD_COLUMNS } from '../src/lib/ird';
 import { buildWorkbook } from '../src/lib/workbooks';
 
 const entries = processJSON(
@@ -74,7 +74,7 @@ test('IRD template has overview, fitted mapping table with margins, and instruct
     workbook.sheets.map((item) => item.name),
     ['Overview', 'Field Mapping', 'Instructions'],
   );
-  assertTable(workbook, 'Field Mapping', [...IRD_HEADERS], 'A1:L5');
+  assertTable(workbook, 'Field Mapping', [...IRD_COLUMNS.source], 'A1:L5');
   assert.deepEqual(column(workbook, 'Field Mapping', 'Source JSONPath'), [
     '$["a/b"]["0"]',
     '$.kind',
@@ -91,13 +91,13 @@ test('IRD template has overview, fitted mapping table with margins, and instruct
 test('blank IRD has 30 editable empty rows', async () => {
   const workbook = await read('blank', []);
   const mapping = sheet(workbook, 'Field Mapping');
-  assertTable(workbook, 'Field Mapping', [...IRD_HEADERS], 'A1:L31');
+  assertTable(workbook, 'Field Mapping', [...IRD_COLUMNS.source], 'A1:L31');
   assert.equal(mapping.rows.length, 31);
   assert.ok(mapping.rows.slice(1).every((row) => row.every((value) => value === '')));
 });
 
 test('worked example workbooks share target sheets; the IRD adds the field mapping', async () => {
-  const target = await read('example-target', []);
+  const target = await read('example-tables', []);
   const mapping = await read('example-mapping', []);
   assert.deepEqual(
     target.sheets.map((item) => item.name),
@@ -116,11 +116,70 @@ test('worked example workbooks share target sheets; the IRD adds the field mappi
     ],
   );
   assertTable(target, 'Crew', ['project_name', 'member_name', 'role_code'], 'A1:C3');
-  assertTable(mapping, 'Field Mapping', [...IRD_HEADERS], 'A1:L12');
+  assertTable(mapping, 'Field Mapping', [...IRD_COLUMNS.source], 'A1:L12');
   assert.deepEqual(sheet(target, 'Projects').rows[1].slice(1, 3), [2, 'READY']);
   assert.equal(sheet(target, 'Projects').rows[1][7], '');
   assert.deepEqual(sheet(mapping, 'Target Fields').rows, sheet(target, 'Target Fields').rows);
   assert.equal(sheet(target, 'Source JSON').rows[1][0]?.toString().includes('"Orbital"'), true);
+});
+
+test('JSON-as-target workbooks use the target column layout', async () => {
+  const clean = entries.map((entry) => ({ ...entry, value: '' }));
+  const ird = await read('ird', clean, 'target');
+  assertTable(ird, 'Field Mapping', [...IRD_COLUMNS.target], 'A1:L5');
+  assert.deepEqual(column(ird, 'Field Mapping', 'Target JSONPath'), [
+    '$["a/b"]["0"]',
+    '$.kind',
+    '$.formula',
+    '$.nil',
+  ]);
+  assert.ok(column(ird, 'Field Mapping', 'Source Field / Path').every((value) => value === ''));
+  assert.ok(!JSON.stringify(ird.sheets.map((item) => item.rows)).includes('9007199254740993'));
+  assert.equal(sheet(ird, 'Instructions').rows[3][0], 'Mapping ID');
+  assert.equal(sheet(ird, 'Instructions').rows[4][0], 'Source Field / Path');
+
+  const blank = await read('blank', [], 'target');
+  assertTable(blank, 'Field Mapping', [...IRD_COLUMNS.target], 'A1:L31');
+  assert.ok(
+    sheet(blank, 'Field Mapping')
+      .rows.slice(1)
+      .every((row) => row.every((v) => v === '')),
+  );
+
+  const samples = await read('samples', entries, 'target');
+  assert.deepEqual(sheet(samples, 'Data_Mapping_IRD').rows[0].slice(7, 8), ['Mapping Source']);
+  assert.equal(sheet(samples, 'Data_Mapping_IRD').rows[3][3], '9007199254740993');
+});
+
+test('known-source workbooks mirror the known-target ones with source-side names', async () => {
+  const tables = await read('example-tables', [], 'target');
+  const mapping = await read('example-mapping', [], 'target');
+  assert.deepEqual(
+    tables.sheets.map((item) => item.name),
+    ['Overview', 'Source Fields', 'Projects', 'Crew', 'Target JSON', 'Instructions'],
+  );
+  assert.deepEqual(
+    mapping.sheets.map((item) => item.name),
+    [
+      'Overview',
+      'Field Mapping',
+      'Source Fields',
+      'Projects',
+      'Crew',
+      'Target JSON',
+      'Instructions',
+    ],
+  );
+  assertTable(mapping, 'Field Mapping', [...IRD_COLUMNS.target], 'A1:L12');
+  assert.deepEqual(column(mapping, 'Field Mapping', 'Source Field / Path').slice(0, 2), [
+    'Projects.project_name',
+    'Projects.version',
+  ]);
+  assert.equal(sheet(tables, 'Target JSON').rows[1][0]?.toString().includes('"Orbital"'), true);
+  // The tables are the same data in both directions.
+  const forward = await read('example-tables', [], 'source');
+  assert.deepEqual(sheet(tables, 'Projects').rows, sheet(forward, 'Projects').rows);
+  assert.deepEqual(sheet(tables, 'Crew').rows, sheet(forward, 'Crew').rows);
 });
 
 test('cell text drops characters XML cannot hold and respects the Excel cell limit', async () => {

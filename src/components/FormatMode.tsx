@@ -25,6 +25,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import Menu from './Menu';
+import LookupBar from './LookupBar';
 import OutputBody from './OutputBody';
 import SourcePane from './SourcePane';
 import { FORMATS } from '../lib/convert';
@@ -136,226 +137,229 @@ export default function FormatMode({ app }: { app: AppContext }) {
   );
 
   return (
-    <main
-      ref={grid}
-      className={`formatter ${expanded ? `expanded-${expanded}` : ''}`}
-      style={{ '--left': `${split}fr`, '--right': `${1 - split}fr` } as React.CSSProperties}
-      aria-label="JSON formatter"
-    >
-      <section className="pane formatter-input" aria-label="Input">
-        <div className="pane-heading">
-          <h2 className="pane-title">Input</h2>
-          <div className="pane-actions">
-            <button title="Open file" aria-label="Open file" onClick={actions.open.run}>
-              <Upload size={15} />
-            </button>
-            <button
-              title="Paste from clipboard"
-              aria-label="Paste from clipboard"
-              onClick={actions.paste.run}
-            >
-              <ClipboardPaste size={15} />
-            </button>
-            <button title="Load sample" aria-label="Load sample" onClick={actions.sample.run}>
-              <Braces size={15} />
-            </button>
-            <button
-              title="Toggle line wrapping"
-              aria-label="Toggle line wrapping"
-              aria-pressed={settings.wrap}
-              onClick={() => settings.setWrap(!settings.wrap)}
-            >
-              <WrapText size={15} />
-            </button>
-            {doc.canUndo && (
-              <button
-                title="Undo last replacement"
-                aria-label="Undo last replacement"
-                onClick={actions.undo.run}
-              >
-                <Undo2 size={15} />
+    <>
+      <LookupBar app={app} />
+      <main
+        ref={grid}
+        className={`formatter ${expanded ? `expanded-${expanded}` : ''}`}
+        style={{ '--left': `${split}fr`, '--right': `${1 - split}fr` } as React.CSSProperties}
+        aria-label="JSON formatter"
+      >
+        <section className="pane formatter-input" aria-label="Input">
+          <div className="pane-heading">
+            <h2 className="pane-title">Input</h2>
+            <div className="pane-actions">
+              <button title="Open file" aria-label="Open file" onClick={actions.open.run}>
+                <Upload size={15} />
               </button>
-            )}
-            <button
-              title="Clear source"
-              aria-label="Clear source"
-              disabled={!input}
-              onClick={actions.clear.run}
-            >
-              <Trash2 size={15} />
-            </button>
-            {expand('input')}
+              <button
+                title="Paste from clipboard"
+                aria-label="Paste from clipboard"
+                onClick={actions.paste.run}
+              >
+                <ClipboardPaste size={15} />
+              </button>
+              <button title="Load sample" aria-label="Load sample" onClick={actions.sample.run}>
+                <Braces size={15} />
+              </button>
+              <button
+                title="Toggle line wrapping"
+                aria-label="Toggle line wrapping"
+                aria-pressed={settings.wrap}
+                onClick={() => settings.setWrap(!settings.wrap)}
+              >
+                <WrapText size={15} />
+              </button>
+              {doc.canUndo && (
+                <button
+                  title="Undo last replacement"
+                  aria-label="Undo last replacement"
+                  onClick={actions.undo.run}
+                >
+                  <Undo2 size={15} />
+                </button>
+              )}
+              <button
+                title="Clear source"
+                aria-label="Clear source"
+                disabled={!input}
+                onClick={actions.clear.run}
+              >
+                <Trash2 size={15} />
+              </button>
+              {expand('input')}
+            </div>
           </div>
-        </div>
-        <SourcePane
-          doc={doc}
-          editor={editor}
-          wrap={settings.wrap}
-          onOpen={actions.open.run}
-          onPaste={actions.paste.run}
-          onSample={actions.sample.run}
-        />
-        <div className="pane-footnote">
-          <span>
-            {doc.problem
-              ? `Error on line ${doc.problem.line + 1}, column ${doc.problem.column}`
-              : 'Paste or type. Everything stays on this device.'}
-          </span>
-          <span>{(doc.bytes / 1024).toFixed(1)} KB</span>
-        </div>
-      </section>
+          <SourcePane
+            doc={doc}
+            editor={editor}
+            wrap={settings.wrap}
+            onOpen={actions.open.run}
+            onPaste={actions.paste.run}
+            onSample={actions.sample.run}
+          />
+          <div className="pane-footnote">
+            <span>
+              {doc.problem
+                ? `Error on line ${doc.problem.line + 1}, column ${doc.problem.column}`
+                : 'Paste or type. Everything stays on this device.'}
+            </span>
+            <span>{(doc.bytes / 1024).toFixed(1)} KB</span>
+          </div>
+        </section>
 
-      {handle()}
-      <nav className="formatter-actions" aria-label="Formatter actions" ref={rail}>
-        <button
-          className="button primary-button"
-          aria-pressed={indent !== 0}
-          onClick={() => {
-            doc.setIndent(indent || lastIndent);
-            notify('Formatted');
-          }}
-        >
-          <Sparkles size={16} /> Beautify
-        </button>
-        <label className="indent-control stacked">
-          <span>Indent</span>
-          <select
-            aria-label="Indentation"
-            value={indentKey(indent || lastIndent)}
-            onChange={(event) =>
-              doc.setIndent(INDENTS.find((o) => o.value === event.target.value)?.indent ?? 2)
-            }
+        {handle()}
+        <nav className="formatter-actions" aria-label="Formatter actions" ref={rail}>
+          <button
+            className="button primary-button"
+            aria-pressed={indent !== 0}
+            onClick={() => {
+              doc.setIndent(indent || lastIndent);
+              notify('Formatted');
+            }}
           >
-            {INDENTS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          className="button"
-          aria-pressed={indent === 0}
-          onClick={() => {
-            doc.setIndent(0);
-            notify('Minified');
-          }}
-        >
-          <Minimize size={16} /> Minify
-        </button>
-        <button className="button" onClick={editor.validateNow}>
-          <CheckCircle2 size={16} /> Validate
-        </button>
-        <button className="button" disabled={!repair} onClick={editor.repairSource}>
-          <Wrench size={16} /> Repair
-        </button>
-        <button className="button" disabled={!valid} onClick={actions.sort.run}>
-          <ArrowDownAZ size={16} /> Sort keys
-        </button>
-        <Menu
-          label="Convert"
-          icon={<Shuffle size={16} />}
-          className="big-menu"
-          items={FORMATS.map((format, index) => ({
-            label: format.label,
-            disabled: !valid,
-            separator: index > 0 && FORMATS[index - 1].group !== format.group,
-            run: () => app.openConvert(format.id),
-          }))}
-        />
-        <button className="button" disabled={!valid} onClick={actions.schema.run}>
-          <ShieldCheck size={16} /> Schema
-        </button>
-        <span className="actions-divider" aria-hidden="true" />
-        <button className="button" onClick={() => app.switchMode('compare')}>
-          <GitCompareArrows size={16} /> Compare
-        </button>
-        <Menu
-          label="Export"
-          icon={<Download size={16} />}
-          className="big-menu"
-          items={[
-            actions.copy,
-            actions.copyMinified,
-            actions.download,
-            { ...actions.excel, separator: true },
-            { ...actions.share, separator: true },
-          ]}
-        />
-      </nav>
-      {handle(true)}
+            <Sparkles size={16} /> Beautify
+          </button>
+          <label className="indent-control stacked">
+            <span>Indent</span>
+            <select
+              aria-label="Indentation"
+              value={indentKey(indent || lastIndent)}
+              onChange={(event) =>
+                doc.setIndent(INDENTS.find((o) => o.value === event.target.value)?.indent ?? 2)
+              }
+            >
+              {INDENTS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="button"
+            aria-pressed={indent === 0}
+            onClick={() => {
+              doc.setIndent(0);
+              notify('Minified');
+            }}
+          >
+            <Minimize size={16} /> Minify
+          </button>
+          <button className="button" onClick={editor.validateNow}>
+            <CheckCircle2 size={16} /> Validate
+          </button>
+          <button className="button" disabled={!repair} onClick={editor.repairSource}>
+            <Wrench size={16} /> Repair
+          </button>
+          <button className="button" disabled={!valid} onClick={actions.sort.run}>
+            <ArrowDownAZ size={16} /> Sort keys
+          </button>
+          <Menu
+            label="Convert"
+            icon={<Shuffle size={16} />}
+            className="big-menu"
+            items={FORMATS.map((format, index) => ({
+              label: format.label,
+              disabled: !valid,
+              separator: index > 0 && FORMATS[index - 1].group !== format.group,
+              run: () => app.openConvert(format.id),
+            }))}
+          />
+          <button className="button" disabled={!valid} onClick={actions.schema.run}>
+            <ShieldCheck size={16} /> Schema
+          </button>
+          <span className="actions-divider" aria-hidden="true" />
+          <button className="button" onClick={() => app.switchMode('compare')}>
+            <GitCompareArrows size={16} /> Compare
+          </button>
+          <Menu
+            label="Export"
+            icon={<Download size={16} />}
+            className="big-menu"
+            items={[
+              actions.copy,
+              actions.copyMinified,
+              actions.download,
+              { ...actions.excel, separator: true },
+              { ...actions.share, separator: true },
+            ]}
+          />
+        </nav>
+        {handle(true)}
 
-      <section className="pane formatter-output" aria-label="Output">
-        <div className="pane-heading">
-          <div className="segmented view-tabs" role="tablist" aria-label="Output view">
-            {VIEWS.map(({ id, label, icon: Icon }) => (
+        <section className="pane formatter-output" aria-label="Output">
+          <div className="pane-heading">
+            <div className="segmented view-tabs" role="tablist" aria-label="Output view">
+              {VIEWS.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  role="tab"
+                  aria-selected={formatView === id}
+                  onClick={() => choose(id)}
+                >
+                  <Icon size={14} /> {label}
+                </button>
+              ))}
+            </div>
+            <div className="pane-actions">
               <button
-                key={id}
-                role="tab"
-                aria-selected={formatView === id}
-                onClick={() => choose(id)}
+                title="Use the output as input"
+                aria-label="Use the output as input"
+                disabled={!output || output === input}
+                onClick={() => {
+                  doc.replace(output);
+                  app.announce('Output copied into the input');
+                }}
               >
-                <Icon size={14} /> {label}
+                <ArrowLeftToLine size={15} />
               </button>
-            ))}
+              <button
+                title="Copy formatted JSON"
+                aria-label="Copy formatted JSON"
+                disabled={!output}
+                onClick={actions.copy.run}
+              >
+                <Copy size={15} />
+              </button>
+              <button
+                title="Download JSON"
+                aria-label="Download JSON"
+                disabled={!output}
+                onClick={() => download(output, 'formatted.json')}
+              >
+                <Download size={15} />
+              </button>
+              {expand('output')}
+            </div>
           </div>
-          <div className="pane-actions">
-            <button
-              title="Use the output as input"
-              aria-label="Use the output as input"
-              disabled={!output || output === input}
-              onClick={() => {
-                doc.replace(output);
-                app.announce('Output copied into the input');
-              }}
-            >
-              <ArrowLeftToLine size={15} />
-            </button>
-            <button
-              title="Copy formatted JSON"
-              aria-label="Copy formatted JSON"
-              disabled={!output}
-              onClick={actions.copy.run}
-            >
-              <Copy size={15} />
-            </button>
-            <button
-              title="Download JSON"
-              aria-label="Download JSON"
-              disabled={!output}
-              onClick={() => download(output, 'formatted.json')}
-            >
-              <Download size={15} />
-            </button>
-            {expand('output')}
+          <div className="formatter-view" role="tabpanel" aria-label={`${formatView} view`}>
+            {expanded === 'input' ? null : formatView === 'code' || !valid ? (
+              <OutputBody
+                doc={doc}
+                editor={editor}
+                onConvertSource={(kind) => void io.convertSource(kind)}
+              />
+            ) : formatView === 'tree' ? (
+              views.explorer
+            ) : formatView === 'table' ? (
+              views.table
+            ) : (
+              views.graph
+            )}
           </div>
-        </div>
-        <div className="formatter-view" role="tabpanel" aria-label={`${formatView} view`}>
-          {expanded === 'input' ? null : formatView === 'code' || !valid ? (
-            <OutputBody
-              doc={doc}
-              editor={editor}
-              onConvertSource={(kind) => void io.convertSource(kind)}
-            />
-          ) : formatView === 'tree' ? (
-            views.explorer
-          ) : formatView === 'table' ? (
-            views.table
-          ) : (
-            views.graph
-          )}
-        </div>
-        <div className="pane-footnote">
-          <span>
-            {doc.warnings.length
-              ? doc.warnings[0]
-              : indent === 0
-                ? 'Minified. Numbers, key order, and escapes preserved.'
-                : 'Numbers, key order, and string escapes preserved.'}
-          </span>
-          <span>{doc.entries.length.toLocaleString()} values</span>
-        </div>
-      </section>
-    </main>
+          <div className="pane-footnote">
+            <span>
+              {doc.warnings.length
+                ? doc.warnings[0]
+                : indent === 0
+                  ? 'Minified. Numbers, key order, and escapes preserved.'
+                  : 'Numbers, key order, and string escapes preserved.'}
+            </span>
+            <span>{doc.entries.length.toLocaleString()} values</span>
+          </div>
+        </section>
+      </main>
+    </>
   );
 }

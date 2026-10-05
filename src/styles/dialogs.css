@@ -33,7 +33,7 @@
   max-height: min(860px, calc(100dvh - 40px));
 }
 .export-dialog {
-  width: 520px;
+  width: min(880px, calc(100vw - 32px));
 }
 .dialog-heading {
   display: flex;
@@ -291,12 +291,51 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The same four choices for each side of the mapping, aligned row for row; one column when the
+   dialog is narrow. */
+.export-body {
+  container-type: inline-size;
+}
+.export-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto repeat(4, 1fr);
+  column-gap: 18px;
+}
+@container (max-width: 600px) {
+  .export-columns {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    row-gap: 14px;
+  }
+  .export-options {
+    grid-row: auto !important;
+    grid-template-rows: none !important;
+  }
+}
 .export-options {
   display: grid;
-  gap: 8px;
+  grid-row: span 5;
+  grid-template-rows: subgrid;
+  row-gap: 8px;
+  min-width: 0;
   margin: 0;
   padding: 0;
   border: 0;
+}
+.export-heading {
+  margin-bottom: 4px;
+  padding: 0;
+}
+.export-heading strong {
+  display: block;
+  font-weight: 650;
+}
+.export-heading span {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
 }
 .export-option {
   display: flex;

@@ -55,7 +55,15 @@ export default function OutputBody({ doc, editor, onConvertSource }: Props) {
         )}
       </div>
     );
-  if (output) return <Output output={output} selected={doc.selected} />;
+  if (output)
+    return (
+      <Output
+        output={output}
+        entries={doc.entries}
+        selected={doc.selected}
+        select={editor.select}
+      />
+    );
   return (
     <div className="empty-state">
       <Braces size={28} />

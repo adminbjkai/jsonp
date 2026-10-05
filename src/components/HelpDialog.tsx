@@ -7,7 +7,7 @@ const SHORTCUTS: [string, string][] = [
   ['Enter', 'Format source'],
   ['Shift + C', 'Copy formatted JSON'],
   ['S', 'Download JSON'],
-  ['F', 'Search the explorer'],
+  ['F', 'Focus Find (outside Source)'],
   ['/', 'Open this help'],
 ];
 const QUERIES: [string, string][] = [
@@ -55,16 +55,18 @@ export default function HelpDialog({
         </li>
         <li>
           <b>Read it your way.</b> Switch the output between Code, Tree, Table, and Graph. Click any
-          value to see its path.
+          value, in any view, to see its exact path and copy it.
         </li>
         <li>
           <b>Find what matters.</b> Type in Find, or start with <code>$</code> to run a JSONPath
-          query. Matches light up in the graph too.
+          query. Enter steps to the next match and the path shown follows it. Matches light up in
+          the graph too.
         </li>
         <li>
           <b>Take it further.</b> <em>Convert</em> creates TypeScript, Go, Rust, Python, Zod,
           Kotlin, C#, JSON Schema, YAML, CSV, or XML. <em>Schema</em> validates against a JSON
-          Schema, and <em>Export</em> downloads, shares, or builds an Excel IRD.
+          Schema, and <em>Export</em> downloads, shares, or builds an Excel IRD, with your JSON as
+          the source or the target.
         </li>
       </ol>
       <button className="button" onClick={() => (close(), onSample())}>
@@ -78,7 +80,8 @@ export default function HelpDialog({
         <dd>A clean, colored copy. Numbers and key order are never altered.</dd>
         <dt>Explorer</dt>
         <dd>
-          The tree: every value with its path. Search, query, copy paths, and step through results.
+          The tree: every value, with arrow-key navigation. Branches preview what is inside; hover a
+          row to copy its path or value.
         </dd>
         <dt>Table</dt>
         <dd>Arrays of records as rows and columns. Click a column to sort.</dd>

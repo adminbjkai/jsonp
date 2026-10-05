@@ -26,6 +26,7 @@ import { useLayout } from './state/useLayout';
 import { useDialogs } from './state/useDialogs';
 import { useEditor } from './state/useEditor';
 import { useIO } from './state/useIO';
+import { useSearch } from './state/useSearch';
 
 const Graph = lazy(() => import('./components/Graph'));
 const CompareView = lazy(() => import('./components/CompareView'));
@@ -38,8 +39,6 @@ export default function App() {
   const { toast, notify, dismiss, hold, release } = useToast();
   const [mode, setModeState] = useState<Mode>(initialMode);
   const [formatView, setFormatViewState] = useState<OutputView>(savedOutputView);
-  const [search, setSearch] = useState('');
-  const [graphMatches, setGraphMatches] = useState<ReadonlySet<string> | null>(null);
   const [convertRequest, setConvertRequest] = useState<ConvertRequest>({ nonce: 0 });
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -75,6 +74,7 @@ export default function App() {
 
   const editor = useEditor({ doc, layout, notify, announce });
   const io = useIO({ doc, notify, announce, mode, inputRef: editor.inputRef });
+  const search = useSearch(doc.entries, doc.input, doc.active, editor.select);
 
   const switchMode = useCallback((next: Mode) => {
     setModeState(next);
@@ -96,7 +96,6 @@ export default function App() {
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const setFormatView = useCallback((view: OutputView) => {
@@ -104,14 +103,14 @@ export default function App() {
     sessionStorage.setItem('jsonp.formatView', view);
   }, []);
   const focusSearch = (query?: string) => {
-    // In Format mode the explorer search lives in the Tree view; Compare has no explorer.
-    if (mode === 'workspace') layout.show('paths');
-    else {
-      if (mode === 'compare') switchMode('format');
-      setFormatView('tree');
-    }
-    if (query !== undefined) setSearch(query);
-    requestAnimationFrame(() => document.getElementById('explorer-search')?.focus());
+    // Find is part of Format and Workspace; Compare has none, so it goes back to Format.
+    if (mode === 'compare') switchMode('format');
+    if (query !== undefined) search.setQuery(query);
+    requestAnimationFrame(() => {
+      const field = document.getElementById('find-input') as HTMLInputElement | null;
+      field?.focus();
+      field?.select();
+    });
   };
   const openConvert = (format?: Format, path?: string) => {
     setConvertRequest((prev) => ({ nonce: prev.nonce + 1, format, path }));
@@ -179,7 +178,6 @@ export default function App() {
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const { input, entries, selected } = doc;
@@ -188,15 +186,10 @@ export default function App() {
       <Explorer
         entries={entries}
         active={doc.active}
-        section={doc.activeSection}
         select={editor.select}
         copy={io.copy}
-        reveal={editor.reveal}
-        value={selected ? input.slice(selected.start, selected.end) : ''}
-        query={search}
-        setQuery={setSearch}
         source={input}
-        onMatches={setGraphMatches}
+        search={search}
       />
     ),
     table: (
@@ -214,7 +207,7 @@ export default function App() {
             entries={entries}
             active={doc.active}
             select={editor.select}
-            matches={graphMatches}
+            matches={search.matches}
           />
         </Suspense>
       </div>
@@ -235,6 +228,7 @@ export default function App() {
     openConvert,
     focusSearch,
     actions,
+    search,
     formatView,
     setFormatView,
     views,

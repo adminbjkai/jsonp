@@ -325,18 +325,101 @@
   display: none;
 }
 
-/* The selected value's path, with ancestors you can step back through. */
+/* Find, and the selected value's path with ancestors you can step back through. */
+.lookup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex-shrink: 0;
+  margin: 0 var(--page) 10px;
+}
+.app-shell[data-mode='format'] .lookup {
+  margin-top: var(--page);
+}
+.app-shell[data-mode='format'] .formatter {
+  padding-top: 0;
+}
+.find,
 .selection-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 8px;
   min-height: 38px;
-  margin: 0 var(--page) 10px;
   padding: 3px 6px 3px 10px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--panel);
+}
+.find {
+  flex: 1 1 340px;
+  min-width: 0;
+  max-width: 560px;
+}
+.find:focus-within {
+  border-color: var(--line-strong);
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+.find-field {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--dim);
+}
+.find-field input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+}
+.find-field input::placeholder {
+  color: var(--dim);
+}
+.find-clear,
+.find-step {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.find-status {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.find-status.query-error {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.find-copy {
+  padding: 4px 8px;
+  color: var(--muted);
+}
+.selection-bar {
+  flex: 3 1 480px;
+  min-width: 0;
+}
+.path-value {
+  flex-shrink: 1;
+  max-width: 22%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font: 12px var(--font-code);
+}
+.selection-bar .menu > .button {
+  min-height: 28px;
+  padding: 0 9px;
 }
 .selection-hint {
   padding: 5px 0;
@@ -706,15 +789,46 @@
   .pane-resizer {
     display: none !important;
   }
+  /* On a phone the bars and the pane would not all fit, so the page scrolls rather than squeezing
+     the pane down to a sliver. */
+  .app-shell[data-mode='workspace'] {
+    overflow-y: auto;
+  }
+  .app-shell[data-mode='workspace'] > * {
+    flex-shrink: 0;
+  }
+  .app-shell[data-mode='workspace'] > .workspace {
+    flex: 1 0 min(440px, 70dvh);
+  }
+  .lookup {
+    gap: 8px;
+  }
+  .find {
+    flex-wrap: wrap;
+    max-width: none;
+    row-gap: 0;
+  }
+  .find-field {
+    flex: 1 1 100%;
+  }
+  .find-status {
+    margin-right: auto;
+  }
   .selection-bar {
     flex-wrap: wrap;
     gap: 4px;
   }
-  .path-breadcrumbs {
-    min-width: 100%;
+  .path-value {
+    max-width: 45%;
+  }
+  /* One compact row: the path already shows where the value is, so the ancestors step aside. */
+  .path-breadcrumbs,
+  .source-jump span {
+    display: none;
   }
   .selected-path-copy {
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
     max-width: none;
   }
 }

@@ -15,6 +15,16 @@ A tidier codebase, a calmer and denser interface, and a few small conveniences. 
 - Code view draws indent guides. Selected lines, matches, changed lines, and the active palette item share the same amber mark.
 - Compare's toolbar no longer touches the header, and its labels use sentence case.
 
+### Find and the selected path
+
+- **Find works in Format and Workspace**, above the output or the panes, for every view. It matches keys, values, types, and paths; a search starting with `$` runs a JSONPath query. Enter and Shift+Enter step through matches, wrapping around, and the status reads "3 of 12 matches".
+- The **selected value bar** shows ancestors you can click, the value, and the exact path. It follows whatever is selected: a click in any view, the caret in Source, or a step through matches. A field name that exists under several branches always resolves to the path of the match you are on.
+- **Copy as** offers JSONPath, JSON Pointer, JavaScript path, the value, or path and value. **Go to source** selects the value in Source.
+- Ctrl/⌘ + F now focuses Find without switching the output view.
+- A click on a value or key in the formatted Code view selects it too (a drag still selects text for copying).
+- A search counts each path once; where a key is repeated, selection always resolves to the last one, so every step lands on a value that can be shown.
+- The tree is now an accessible ARIA tree with a single tab stop: ←/→ collapse, expand, and step to the parent; `*` expands a branch; typing jumps to a key. Collapsed branches preview their contents, rows show a type badge, and hover actions copy a path or a value. The old inspector panel is gone, since the selected value bar replaces it.
+
 ### Conveniences
 
 - Every change that replaces your source (format, repair, sort, convert, open, paste, and so on) shows an **Undo** button in its message, followed by **Redo**.
@@ -25,9 +35,15 @@ A tidier codebase, a calmer and denser interface, and a few small conveniences. 
 - Messages pause while the pointer or keyboard focus is on them, so there is time to press Undo.
 - Dropping a file now lists the formats it accepts, including TSV and ODS.
 
+### Export
+
+- Export to Excel has a second column for **JSON is the target**, with the same four choices as before (IRD mapping template, Blank IRD template, a known-source worked example, and Mapping with samples). Target-side workbooks use a layout that reads source then target, fill the Target Field / JSONPath / Type columns from your JSON, and come with matching instructions. Downloads are named `IRD_Target_*` and `Orbital_Source_Example` / `Orbital_Completed_Target_IRD`.
+- The known-source example reads the existing eleven-field contract the other way, tables to JSON; a unit test applies its rules to the bundled tables and checks that they rebuild the bundled JSON exactly.
+
 ### Under the hood
 
-- `src/` is grouped into `lib` (pure logic), `workers`, `components`, `state` (hooks), and `styles`. The 1,865-line `App.tsx` is a composition root over seven hooks and two mode components; the stylesheet was rebuilt from three layers of patches into focused files on a token system.
+- Added [`docs/ARCHITECTURE.md`](ARCHITECTURE.md): the data flow, module map, search and selection model, security, limits, and how to extend the app.
+- `src/` is grouped into `lib` (pure logic), `workers`, `components`, `state` (hooks), and `styles`. The 1,865-line `App.tsx` is a composition root over eight hooks and two mode components; the stylesheet was rebuilt from three layers of patches into focused files on a token system.
 - One long-lived worker handles edits instead of a new worker per change. It is replaced if it falls behind a newer edit and released after 30 seconds idle.
 - Undo history is capped by size (16 million characters) as well as by steps, so large documents can no longer hold hundreds of megabytes.
 - Moving the caret in Source finds the value under it by binary search instead of scanning every value, and explorer search skips building paths it cannot match: about 5 times faster per keystroke for plain queries on a 270,000-value document. Both are tested against the straightforward versions on awkward keys and every offset.

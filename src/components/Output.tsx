@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
-import type { Entry } from '../lib/json';
+import { entryAtOutput, type Entry } from '../lib/json';
 const HEIGHT = 22;
 /** Leading whitespace is drawn one indent level at a time so each level gets a guide line. */
 function Indent({ text, unit }: { text: string; unit: string }) {
@@ -50,7 +50,14 @@ function Line({ text, unit }: { text: string; unit: string }) {
     </>
   );
 }
-export default function Output({ output, selected }: { output: string; selected?: Entry }) {
+interface Props {
+  output: string;
+  entries: Entry[];
+  selected?: Entry;
+  select: (path: string) => void;
+}
+/** Formatted code. A click on a value or key selects it, so its path appears in the path bar. */
+export default function Output({ output, entries, selected, select }: Props) {
   const lines = useMemo(() => output.split('\n'), [output]);
   const columns = useMemo(
     () =>
@@ -90,6 +97,23 @@ export default function Output({ output, selected }: { output: string; selected?
     if (ref.current) ref.current.scrollTop = 0;
     setScroll(0);
   }, [output]);
+  // A plain click, not the end of a text selection, finds the character that was clicked.
+  const choose = () => {
+    const selection = window.getSelection();
+    const node = selection?.anchorNode;
+    if (!selection?.isCollapsed || !node) return;
+    const code = (node instanceof Element ? node : node.parentElement)?.closest('code');
+    const row = code?.closest<HTMLElement>('.code-line');
+    if (!code || !row) return;
+    const range = document.createRange();
+    range.setStart(code, 0);
+    range.setEnd(node, selection.anchorOffset);
+    const line = Number(row.dataset.line);
+    let offset = range.toString().length;
+    for (let i = 0; i < line; i++) offset += lines[i].length + 1;
+    const entry = entryAtOutput(entries, output, offset);
+    if (entry) select(entry.path);
+  };
   const start = Math.max(0, Math.floor(scroll / HEIGHT) - 6),
     end = Math.min(lines.length, Math.ceil((scroll + height) / HEIGHT) + 6);
   return (
@@ -98,6 +122,7 @@ export default function Output({ output, selected }: { output: string; selected?
       className="output-scroll"
       ref={ref}
       onScroll={(e) => setScroll(e.currentTarget.scrollTop)}
+      onClick={choose}
       role="region"
       aria-label="Formatted JSON"
       tabIndex={0}
@@ -110,6 +135,7 @@ export default function Output({ output, selected }: { output: string; selected?
           <div
             className={`code-line ${selected && start + i >= selected.line && start + i <= selected.endLine ? 'highlighted' : ''}`}
             key={start + i}
+            data-line={start + i}
             style={{ top: 16 + (start + i) * HEIGHT }}
           >
             <span className="line-number" aria-hidden="true">
