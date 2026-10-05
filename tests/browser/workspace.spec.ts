@@ -691,14 +691,17 @@ test('the export columns line up row for row at desktop width', async ({ page })
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/');
   await openExcel(page);
-  const tops = async (role: string) =>
-    page
-      .getByRole('group', { name: `JSON is the ${role}` })
-      .locator('.export-option')
-      .evaluateAll((labels) =>
-        labels.map((label) => Math.round(label.getBoundingClientRect().top)),
+  // Both columns are read in one step, so the dialog's opening animation cannot skew one of them.
+  const [source, target] = await page.evaluate(() =>
+    ['source', 'target'].map((role) => {
+      const group = [...document.querySelectorAll('[role=group]')].find(
+        (el) => el.getAttribute('aria-labelledby') === `export-${role}`,
+      )!;
+      return [...group.querySelectorAll('.export-option')].map(
+        (label) => label.getBoundingClientRect().top,
       );
-  const [source, target] = [await tops('source'), await tops('target')];
-  // Rows share their height, so tops agree to within sub-pixel rounding.
-  source.forEach((top, index) => expect(Math.abs(top - target[index])).toBeLessThanOrEqual(1));
+    }),
+  );
+  expect(source).toHaveLength(4);
+  expect(target).toEqual(source);
 });
