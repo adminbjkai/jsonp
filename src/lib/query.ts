@@ -1,7 +1,7 @@
 /** JSONPath (RFC 9535-flavoured practical subset) evaluated against the lossless tree. */
 import { compareNumbers, toValue, type Node, type Part } from './tree';
 
-export interface QueryMatch {
+interface QueryMatch {
   parts: Part[];
   node: Node;
 }

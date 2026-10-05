@@ -193,8 +193,6 @@
   padding-right: 14px;
   border-bottom: 1px solid var(--line);
   font-size: 12px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
   color: var(--muted);
   flex-shrink: 0;
 }
@@ -386,8 +384,7 @@ mark.cmp-char-add {
   flex-shrink: 0;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
+  font-weight: 650;
 }
 .cmp-change-head code {
   overflow-wrap: anywhere;

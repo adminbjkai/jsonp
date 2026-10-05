@@ -221,18 +221,22 @@ test('new dialogs and the table meet accessibility checks', async ({ page }) => 
   await page.getByRole('button', { name: 'Tools', exact: true }).click();
   await check();
   await page.keyboard.press('Escape');
-  for (const open of [
-    () => page.keyboard.press('Control+k'),
-    () => page.getByRole('button', { name: 'Convert', exact: true }).click(),
-    () => tool(page, 'Tools', 'Validate against a JSON Schema…'),
-    () => page.getByLabel('Help and shortcuts').click(),
-    () => page.getByRole('button', { name: '16 values' }).click(),
-  ]) {
-    await open();
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await check();
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog')).toBeHidden();
+  for (const theme of ['dark', 'light']) {
+    if (theme === 'light') await page.getByLabel('Use light theme', { exact: true }).click();
+    for (const open of [
+      () => page.keyboard.press('Control+k'),
+      () => page.getByRole('button', { name: 'Convert', exact: true }).click(),
+      () => tool(page, 'Tools', 'Validate against a JSON Schema…'),
+      () => page.getByLabel('Help and shortcuts').click(),
+      () => page.getByRole('button', { name: '16 values' }).click(),
+    ]) {
+      await open();
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await page.waitForTimeout(350); // let the opening animation finish before measuring contrast
+      await check();
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toBeHidden();
+    }
   }
   await source(page).fill('[1,');
   await expect(page.getByRole('alert')).toBeVisible();

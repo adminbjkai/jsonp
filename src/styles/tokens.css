@@ -16,8 +16,8 @@
 
   /* Text */
   --text: #e7ebf3;
-  --muted: #9aa5bb;
-  --dim: #8591a8;
+  --muted: #a9b4c8;
+  --dim: #98a4ba;
 
   /* Primary controls are ink: the text colour inverted. */
   --ink: #e7ebf3;
@@ -79,7 +79,7 @@
   --accent: #8a5a00;
   --marker: #ffd84a;
   --marker-ink: #1b1500;
-  --marker-edge: #c98f00;
+  --marker-edge: #b87c00;
   --marker-wash: rgba(255, 200, 40, 0.3);
   --error: #b42318;
   --ok: #067647;

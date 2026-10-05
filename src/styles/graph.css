@@ -221,7 +221,16 @@
   border-color: var(--line);
 }
 .graph-area .graph-caption span {
+  display: block;
+  margin-top: 3px;
   color: var(--dim);
+}
+.graph-caption {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font: 12px var(--font-code);
+  pointer-events: none;
 }
 .graph-caption b {
   font-weight: 400;

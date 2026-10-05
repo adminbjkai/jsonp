@@ -200,6 +200,15 @@
 .status[data-state='busy'] > span {
   background: var(--marker);
 }
+.status-jump {
+  padding: 2px 6px;
+  margin: 0 -6px;
+  color: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
 .document-stats {
   display: flex;
   align-items: center;

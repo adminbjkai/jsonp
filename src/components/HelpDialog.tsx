@@ -2,7 +2,7 @@ import type { RefObject } from 'react';
 import { X } from 'lucide-react';
 const MOD =
   typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
-export const SHORTCUTS: [string, string][] = [
+const SHORTCUTS: [string, string][] = [
   ['K', 'Find any action'],
   ['Enter', 'Format source'],
   ['Shift + C', 'Copy formatted JSON'],
@@ -108,8 +108,10 @@ export default function HelpDialog({
         </div>
       ))}
       <div className="dialog-tip">
-        In the Explorer, ↑/↓ move between results and {MOD} + C copies the selected path. Drag pane
-        headers to reorder and dividers to resize. Escape exits a focused pane.
+        In the Explorer, ↑/↓ move between results and {MOD} + C copies the selected path; Show paths
+        adds each path under its name. Drag pane headers to reorder and dividers to resize,
+        including the split between input and output in Format mode. Escape exits a focused pane.
+        Any change that replaces your source offers Undo in its message.
       </div>
     </dialog>
   );

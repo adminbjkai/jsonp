@@ -49,7 +49,7 @@ import {
 import type { CompareReply } from '../workers/compare.worker';
 import '../styles/compare.css';
 
-export interface CompareViewProps {
+interface CompareViewProps {
   /** Current Source document (may be empty or invalid). */
   initialLeft: string;
   notify: (message: string) => void;
@@ -758,7 +758,8 @@ export default function CompareView({
   };
 
   return (
-    <div
+    <main
+      aria-label="Compare documents"
       className={`compare-view ${narrow ? 'is-narrow' : ''}`}
       data-mode={mode}
       onKeyDown={(event) => {
@@ -1114,6 +1115,6 @@ export default function CompareView({
           </div>
         )
       )}
-    </div>
+    </main>
   );
 }

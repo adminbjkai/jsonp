@@ -26,11 +26,14 @@ export default function Menu({
   const button = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const [alignRight, setAlignRight] = useState(false);
-  // Keep the menu inside the viewport: open rightward unless that would overflow.
+  const [dropUp, setDropUp] = useState(false);
+  // Keep the menu inside the viewport: open rightward and downward unless that would overflow.
   useLayoutEffect(() => {
     if (!open || !button.current || !list.current) return;
     const anchor = button.current.getBoundingClientRect();
     setAlignRight(anchor.left + list.current.offsetWidth > window.innerWidth - 8);
+    const room = window.innerHeight - anchor.bottom - 14;
+    setDropUp(list.current.offsetHeight > room && anchor.top > room);
   }, [open]);
   const focusItem = (index: number) => {
     const buttons = [
@@ -69,7 +72,7 @@ export default function Menu({
       {open && (
         <div
           ref={list}
-          className={`menu-list ${alignRight ? 'align-right' : ''}`}
+          className={`menu-list ${alignRight ? 'align-right' : ''} ${dropUp ? 'drop-up' : ''}`}
           role="menu"
           id={id}
           aria-label={label}

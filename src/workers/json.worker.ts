@@ -1,6 +1,6 @@
 import { processJSON, type DocumentResult, type Indent } from '../lib/json';
 import { repairJSON } from '../lib/repair';
-export interface WorkerRequest {
+interface WorkerRequest {
   seq: number;
   source: string;
   indent: Indent;

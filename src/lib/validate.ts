@@ -10,7 +10,7 @@ export interface SchemaIssue {
   schemaPointer?: string;
 }
 
-export interface ValidationReport {
+interface ValidationReport {
   valid: boolean;
   issues: SchemaIssue[];
   schemaError?: string;

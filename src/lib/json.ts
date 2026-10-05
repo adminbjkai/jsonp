@@ -28,7 +28,7 @@ export interface DocumentResult {
   repair?: RepairResult;
 }
 export const MAX_INPUT = 5 * 1024 * 1024;
-export const MAX_ENTRIES = 300_000;
+const MAX_ENTRIES = 300_000;
 export type MappingEntry = Pick<Entry, 'path' | 'parts' | 'type' | 'value'>;
 export const isContainer = (entry: Pick<Entry, 'type'>) =>
   entry.type === 'object' || entry.type === 'array';
@@ -64,6 +64,32 @@ export const jsPath = (parts: (string | number)[]) =>
         )
         .join('')
     : '';
+/**
+ * Explorer search: a value matches when the query appears in its JSON Pointer, JSONPath, value, or
+ * type. Plain queries skip building the JSONPath, which is the slow part, whenever that cannot
+ * change the result: a query of only letters, digits, `_`, and `-` can only appear in a JSONPath
+ * inside raw key text (also present in the pointer) unless a key contains characters that JSON
+ * escapes there (quotes, backslashes, control characters, surrogates), which a one-time scan detects.
+ */
+export function entryMatcher(entries: Entry[]) {
+  let escapedKeys: boolean | undefined;
+  return (query: string): ((entry: Entry) => boolean) => {
+    escapedKeys ??= entries.some((entry) => {
+      const key = entry.parts.at(-1);
+      return typeof key === 'string' && /["\\\u0000-\u001f\ud800-\udfff]/.test(key);
+    });
+    const q = query.toLowerCase();
+    if (!escapedKeys && /^[\w-]+$/.test(q))
+      return (entry) =>
+        entry.path.toLowerCase().includes(q) ||
+        entry.value.toLowerCase().includes(q) ||
+        entry.type.includes(q);
+    return (entry) =>
+      `${entry.path} ${jsonPath(entry.parts)} ${entry.value} ${entry.type}`
+        .toLowerCase()
+        .includes(q);
+  };
+}
 export const EXAMPLE = `{
   "project": "Orbital",
   "version": 2,

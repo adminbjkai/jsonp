@@ -230,12 +230,132 @@ test('a share link pasted into an open tab loads, and a bad saved mode falls bac
 
 test.describe('system theme', () => {
   test.use({ colorScheme: 'light' });
-  test('a first visit follows the system theme, and a saved choice wins', async ({ page }) => {
+  test('a first visit follows the system theme until a choice is made', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-    await page.getByLabel('Use dark theme', { exact: true }).click();
+    // Without a saved choice the page keeps following the system setting.
+    await page.emulateMedia({ colorScheme: 'dark' });
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await page.getByLabel('Use light theme', { exact: true }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    // A saved choice wins over the system, now and after a reload.
+    await page.emulateMedia({ colorScheme: 'dark' });
     await page.reload();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   });
+  test('an unreadable saved theme falls back to the system theme', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('jsonp.theme', '{not json'));
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  });
+});
+
+test('expanding a pane keeps the actions and gives it the room', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/#format');
+  await ready(page);
+  const width = async (name: string) =>
+    (await page.getByLabel(name, { exact: true }).first().boundingBox())!.width;
+  await page.getByLabel('Expand output', { exact: true }).click();
+  expect(await width('Output')).toBeGreaterThan(900);
+  await expect(actions(page).getByRole('button', { name: 'Beautify' })).toBeVisible();
+  await expect(page.getByLabel('Input', { exact: true })).toBeHidden();
+  await page.getByLabel('Restore layout', { exact: true }).click();
+  expect(await width('Input')).toBeGreaterThan(400);
+  await page.getByLabel('Expand input', { exact: true }).click();
+  expect(await width('Input')).toBeGreaterThan(900);
+  await expect(actions(page).getByRole('button', { name: 'Beautify' })).toBeVisible();
+  await page.getByLabel('Restore layout', { exact: true }).click();
+  expect(await width('Output')).toBeGreaterThan(400);
+});
+
+test('action menus stay inside the window, and the output heading does not overlap', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1000, height: 700 });
+  await page.goto('/#format');
+  await ready(page);
+  for (const name of ['Export', 'Convert']) {
+    await actions(page).getByRole('button', { name, exact: true }).click();
+    const menu = page.getByRole('menu', { name });
+    const box = (await menu.boundingBox())!;
+    expect(box.y, `${name} menu top`).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height, `${name} menu bottom`).toBeLessThanOrEqual(700);
+    expect(box.x + box.width, `${name} menu right`).toBeLessThanOrEqual(1000);
+    // The point at the last item's far edge must belong to the menu, not to a clipping ancestor.
+    const last = (await menu.getByRole('menuitem').last().boundingBox())!;
+    const reachable = await page.evaluate(
+      ({ x, y }) => !!document.elementFromPoint(x, y)?.closest('[role=menu]'),
+      { x: last.x + last.width - 6, y: last.y + last.height / 2 },
+    );
+    expect(reachable, `${name} menu is clipped`).toBe(true);
+    await page.keyboard.press('Escape');
+  }
+  const heading = (await page
+    .getByLabel('Output', { exact: true })
+    .locator('.pane-heading')
+    .boundingBox())!;
+  expect(heading.height).toBeLessThan(56);
+});
+
+test('the split between input and output moves with the keyboard and resets', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/#format');
+  await ready(page);
+  const handle = page.getByRole('separator', { name: 'Resize input and output' });
+  await expect(handle).toHaveAttribute('aria-valuenow', '50');
+  await handle.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(handle).toHaveAttribute('aria-valuenow', '53');
+  const input = (await page.getByLabel('Input', { exact: true }).boundingBox())!.width;
+  const output = (await page.getByLabel('Output', { exact: true }).boundingBox())!.width;
+  expect(input).toBeGreaterThan(output);
+  await page.reload();
+  await expect(page.getByRole('separator', { name: 'Resize input and output' })).toHaveAttribute(
+    'aria-valuenow',
+    '53',
+  );
+  await page.getByRole('separator', { name: 'Resize input and output' }).dblclick();
+  await expect(page.getByRole('separator', { name: 'Resize input and output' })).toHaveAttribute(
+    'aria-valuenow',
+    '50',
+  );
+});
+
+test('every replacement offers Undo, and a newer message replaces the offer', async ({ page }) => {
+  await page.goto('/#format');
+  await ready(page);
+  const toast = page.getByRole('status').filter({ hasText: 'Source cleared' });
+  await page.getByLabel('Clear source', { exact: true }).click();
+  await expect(toast).toBeVisible();
+  await expect(source(page)).toHaveValue('');
+  await toast.getByRole('button', { name: 'Undo' }).click();
+  await expect(source(page)).not.toHaveValue('');
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Undone' }).getByRole('button', { name: 'Redo' }),
+  ).toBeVisible();
+  await page.getByRole('status').getByRole('button', { name: 'Redo' }).click();
+  await expect(source(page)).toHaveValue('');
+  // Loading the sample is a replacement too.
+  await page.getByRole('button', { name: 'Try the sample' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Sample loaded' })).toBeVisible();
+  // A newer replacement takes over the message, so an old Undo cannot revert the wrong change.
+  await source(page).fill('{"b":1}');
+  await actions(page).getByRole('button', { name: 'Minify' }).click();
+  await ready(page);
+  await page.keyboard.press('Control+Enter');
+  const formatted = page.getByRole('status').filter({ hasText: 'Source formatted' });
+  await expect(formatted).toBeVisible();
+  await page.getByLabel('Clear source', { exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Source cleared' })).toBeVisible();
+  await expect(formatted).toBeHidden();
+});
+
+test('pages have a heading and Compare has a main landmark', async ({ page }) => {
+  for (const mode of ['format', 'workspace', 'compare']) {
+    await page.goto(`/#${mode}`);
+    await page.reload();
+    await expect(page.getByRole('heading', { level: 1, name: 'JSON Prettify' })).toBeAttached();
+    await expect(page.getByRole('main')).toHaveCount(1);
+  }
 });

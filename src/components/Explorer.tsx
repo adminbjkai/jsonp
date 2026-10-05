@@ -16,7 +16,7 @@ import {
   Braces,
   X,
 } from 'lucide-react';
-import { isContainer, type Entry, jsonPath, jsPath, pointer } from '../lib/json';
+import { entryMatcher, isContainer, type Entry, jsonPath, jsPath, pointer } from '../lib/json';
 import { isQuery } from '../lib/query';
 import type { QueryReply } from '../workers/query.worker';
 import { save, saved } from '../state/prefs';
@@ -114,24 +114,23 @@ export default function Explorer({
     () => entries.findLast((entry) => entry.path === active),
     [entries, active],
   );
+  const matcher = useMemo(() => entryMatcher(entries), [entries]);
   const visible = useMemo(() => {
     if (queryMode)
       return (queried?.paths ?? [])
         .map((path) => byPath.get(path))
         .filter((entry) => entry !== undefined);
-    const q = deferredQuery.toLowerCase().trim();
+    const q = deferredQuery.trim();
+    const matches = q ? matcher(q) : null;
     let hiddenDepth = Infinity;
     return entries.filter((entry) => {
-      if (q)
-        return `${entry.path} ${jsonPath(entry.parts)} ${entry.value} ${entry.type}`
-          .toLowerCase()
-          .includes(q);
+      if (matches) return matches(entry);
       if (!tree) return true;
       if (entry.parts.length > hiddenDepth) return false;
       hiddenDepth = collapsed.has(entry.path) ? entry.parts.length : Infinity;
       return true;
     });
-  }, [entries, deferredQuery, tree, collapsed, queryMode, queried, byPath]);
+  }, [entries, deferredQuery, tree, collapsed, queryMode, queried, byPath, matcher]);
   const searching = deferredQuery.trim() !== '';
   useEffect(() => {
     onMatches?.(searching ? new Set(visible.map((entry) => entry.path)) : null);
@@ -252,7 +251,7 @@ export default function Explorer({
           </button>
         )}
         <label>
-          Paths
+          <span>Paths</span>
           <select
             aria-label="Path display format"
             value={pathFormat}

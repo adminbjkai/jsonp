@@ -8,7 +8,11 @@ interface Props {
 }
 export default function PathBar({ entry, select, reveal, copy }: Props) {
   return (
-    <div className="selection-bar">
+    <div
+      className={`selection-bar ${entry ? '' : 'idle'}`}
+      role="region"
+      aria-label="Selected value"
+    >
       {entry ? (
         <>
           <nav className="path-breadcrumbs" aria-label="Selected value ancestors">

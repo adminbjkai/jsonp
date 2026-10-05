@@ -9,7 +9,7 @@ export const PANE_LABELS: Record<Pane, string> = {
   table: 'Table',
   graph: 'Graph',
 };
-export const DEFAULT_ORDER: Pane[] = ['input', 'output', 'paths'];
+const DEFAULT_ORDER: Pane[] = ['input', 'output', 'paths'];
 
 function savedOrder(): Pane[] {
   const value = saved<unknown>('jsonp.order', DEFAULT_ORDER);

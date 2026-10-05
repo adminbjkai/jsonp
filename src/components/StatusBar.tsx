@@ -10,6 +10,8 @@ interface Props {
   section: 'key' | 'value';
   remembered: boolean;
   onInsights: () => void;
+  /** When set, the status text is a button (used to jump to a syntax error). */
+  onStatus?: () => void;
 }
 
 /** One slim line: is the document valid, how big is it, and what is selected. */
@@ -22,12 +24,19 @@ export default function StatusBar({
   section,
   remembered,
   onInsights,
+  onStatus,
 }: Props) {
   return (
     <footer className="status-bar">
       <div className="status" data-state={state}>
         <span />
-        <b>{status}</b>
+        {onStatus ? (
+          <button className="status-jump" title="Go to the error" onClick={onStatus}>
+            {status}
+          </button>
+        ) : (
+          <b>{status}</b>
+        )}
       </div>
       <div className="document-stats">
         <span>{(bytes / 1024).toFixed(1)} KB</span>

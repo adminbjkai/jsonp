@@ -9,10 +9,11 @@ interface Props {
   wrap: boolean;
   onOpen: () => void;
   onPaste: () => void;
+  onSample: () => void;
 }
 
 /** The editable source, with first-step shortcuts while it is empty. */
-export default function SourcePane({ doc, editor, wrap, onOpen, onPaste }: Props) {
+export default function SourcePane({ doc, editor, wrap, onOpen, onPaste, onSample }: Props) {
   return (
     <>
       {!doc.input && (
@@ -23,7 +24,7 @@ export default function SourcePane({ doc, editor, wrap, onOpen, onPaste }: Props
           <button className="button" onClick={onPaste}>
             <ClipboardPaste size={15} /> Paste
           </button>
-          <button className="button quiet" onClick={doc.loadSample}>
+          <button className="button quiet" onClick={onSample}>
             <Braces size={15} /> Try the sample
           </button>
         </div>

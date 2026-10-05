@@ -36,9 +36,9 @@ import { isContainer, type Entry } from '../lib/json';
 /* Pure layout helpers (unit tested in tests/graph.test.ts)            */
 /* ------------------------------------------------------------------ */
 
-export type GraphDirection = 'LR' | 'TB';
+type GraphDirection = 'LR' | 'TB';
 /** Documents with more containers than this start with deeper branches collapsed. */
-export const LARGE_GRAPH = 300;
+const LARGE_GRAPH = 300;
 /** Hard limit of cards drawn at once. */
 export const MAX_VISIBLE_CARDS = 1500;
 export const CARD_WIDTH = 260;
@@ -49,10 +49,10 @@ const EMPTY_HEIGHT = 32;
 const BORDER = 2;
 const GAPS = { LR: { depth: 100, breadth: 28 }, TB: { depth: 90, breadth: 36 } } as const;
 
-export const cardHeight = (rows: number) =>
+const cardHeight = (rows: number) =>
   BORDER + HEADER_HEIGHT + (rows ? Math.min(rows, MAX_ROWS) * ROW_HEIGHT : EMPTY_HEIGHT);
 
-export interface GraphIndex {
+interface GraphIndex {
   byPath: Map<string, Entry>;
   /** All direct children of each container, in document order. */
   children: Map<string, Entry[]>;
@@ -85,7 +85,7 @@ export function graphIndex(entries: Entry[]): GraphIndex {
 
 const asIndex = (source: Entry[] | GraphIndex) =>
   Array.isArray(source) ? graphIndex(source) : source;
-export const inBranch = (path: string, root: string) =>
+const inBranch = (path: string, root: string) =>
   root === '' || path === root || path.startsWith(root + '/');
 
 /** Cards visible from `root` when the containers in `hidden` (and their subtrees) are hidden. Stops counting past `limit`. */
@@ -150,7 +150,7 @@ export function cardChain(source: Entry[] | GraphIndex, path: string) {
   return chain;
 }
 
-export interface CardLayout {
+interface CardLayout {
   entry: Entry;
   x: number;
   y: number;
@@ -158,7 +158,7 @@ export interface CardLayout {
   height: number;
   depth: number;
 }
-export interface GraphLayoutOptions {
+interface GraphLayoutOptions {
   /** Containers whose cards (and subtrees) are hidden. */
   hidden?: ReadonlySet<string>;
   direction?: GraphDirection;
@@ -167,7 +167,7 @@ export interface GraphLayoutOptions {
   /** Maximum number of cards; above it the layout is empty and `overflow` is true. */
   cap?: number;
 }
-export interface GraphLayout {
+interface GraphLayout {
   cards: CardLayout[];
   positions: Map<string, CardLayout>;
   /** Cards in view (capped at cap + 1 when overflowing). */
@@ -258,7 +258,7 @@ export const isUrlValue = (value: string) => /^https?:\/\/[^\s"<>]+$/i.test(valu
 /* Component                                                           */
 /* ------------------------------------------------------------------ */
 
-export interface GraphProps {
+interface GraphProps {
   entries: Entry[];
   active: string | null;
   select: (path: string) => void;

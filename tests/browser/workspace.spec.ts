@@ -384,3 +384,32 @@ test('known target and completed mapping downloads share a schema and ignore the
   const empty = await readWorkbook(await (await emptyDownload).path());
   expect(sheet(empty, 'Field Mapping')).toEqual(sheet(completed, 'Field Mapping'));
 });
+
+test('narrow panes keep every pane control reachable', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await page.goto('/#workspace');
+  await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Graph', exact: true }).click();
+  await page.getByRole('button', { name: 'Table', exact: true }).click();
+  for (const label of [
+    'Focus Source',
+    'Focus Formatted',
+    'Focus Explorer',
+    'Focus Graph',
+    'Focus Table',
+  ]) {
+    await expect(page.getByLabel(label, { exact: true })).toBeVisible();
+  }
+  await expect(page.getByLabel('Indentation')).toBeVisible();
+  await expect(page.getByLabel('Download JSON', { exact: true })).toBeVisible();
+  // The heading wraps rather than clipping: no control sits outside its pane.
+  const outside = await page.evaluate(
+    () =>
+      [...document.querySelectorAll<HTMLElement>('.pane-actions button')].filter((button) => {
+        const pane = button.closest('.pane')!.getBoundingClientRect();
+        const box = button.getBoundingClientRect();
+        return box.right > pane.right + 1 || box.left < pane.left - 1;
+      }).length,
+  );
+  expect(outside).toBe(0);
+});

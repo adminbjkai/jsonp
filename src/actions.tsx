@@ -69,6 +69,8 @@ export interface ActionContext {
   mode: Mode;
   switchMode: (mode: Mode) => void;
   notify: (message: string) => void;
+  /** A message after the source was replaced; offers Undo. */
+  announce: (message: string) => void;
   fileRef: RefObject<HTMLInputElement | null>;
   openConvert: (format?: Format, path?: string) => void;
   focusSearch: (query?: string) => void;
@@ -78,7 +80,19 @@ type Action = MenuItem & { hint?: string; keywords?: string };
 
 /** One action list feeds the menus, the command palette, and keyboard shortcuts. */
 export function createActions(ctx: ActionContext) {
-  const { doc, io, settings, layout, editor, dialogs, mode, switchMode, notify, fileRef } = ctx;
+  const {
+    doc,
+    io,
+    settings,
+    layout,
+    editor,
+    dialogs,
+    mode,
+    switchMode,
+    notify,
+    announce,
+    fileRef,
+  } = ctx;
   const { input, output, repair, valid, selected, sniffed } = doc;
   const icon = (Icon: typeof Braces) => <Icon size={15} />;
   const canExtract = valid && !!selected && selected.parts.length > 0;
@@ -86,12 +100,22 @@ export function createActions(ctx: ActionContext) {
   const actions = {
     open: { label: 'Open file…', icon: icon(Upload), run: () => fileRef.current?.click() },
     paste: { label: 'Paste from clipboard', icon: icon(ClipboardPaste), run: io.pasteClipboard },
-    sample: { label: 'Load sample', icon: icon(Braces), run: doc.loadSample },
+    sample: {
+      label: 'Load sample',
+      icon: icon(Braces),
+      run: () => {
+        doc.loadSample();
+        announce('Sample loaded');
+      },
+    },
     clear: {
       label: 'Clear source',
       icon: icon(FilePlus2),
       disabled: !input,
-      run: () => doc.replace(''),
+      run: () => {
+        doc.replace('');
+        announce('Source cleared');
+      },
     },
     format: {
       label: 'Format source',

@@ -1,7 +1,7 @@
 import { useRef, type RefObject } from 'react';
 
 const NAMES = ['help', 'palette', 'export', 'convert', 'schema', 'insights'] as const;
-export type DialogName = (typeof NAMES)[number];
+type DialogName = (typeof NAMES)[number];
 
 /** The app's modal dialogs, opened by name from menus, shortcuts, and the command palette. */
 export function useDialogs() {

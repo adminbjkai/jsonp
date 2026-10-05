@@ -227,6 +227,7 @@ export default function WorkspaceMode({ app }: { app: AppContext }) {
               wrap={settings.wrap}
               onOpen={actions.open.run}
               onPaste={actions.paste.run}
+              onSample={actions.sample.run}
             />
             <div className="pane-footnote">
               <span>
@@ -318,7 +319,6 @@ export default function WorkspaceMode({ app }: { app: AppContext }) {
         <Menu
           label="Export"
           icon={<Download size={15} />}
-          className="export-menu"
           items={[
             actions.copy,
             actions.copyMinified,

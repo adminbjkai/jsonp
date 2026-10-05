@@ -9,7 +9,7 @@ export interface Change {
   before?: string;
   after?: string;
 }
-export interface DiffResult {
+interface DiffResult {
   changes: Change[];
   truncated: boolean;
   summary: Record<ChangeKind, number>;

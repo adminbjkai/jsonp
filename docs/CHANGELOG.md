@@ -1,5 +1,51 @@
 # Changelog
 
+## 3.1.0 — 2026-10-04
+
+A tidier codebase, a calmer and denser interface, and a few small conveniences. No feature was removed.
+
+### Design
+
+- A new visual system, "marker on ink": quiet neutral surfaces, monochrome controls, and a single highlighter amber that marks where you are (the selected value, search matches, changes, and errors). It replaces the lime accent.
+- Schibsted Grotesk and Red Hat Mono ship with the app (about 70 KB for the Latin subsets, cached for a year; no request leaves the origin).
+- The theme follows the system on a first visit and is applied before first paint, so there is no flash. A saved choice always wins.
+- A single 52 px header with a sliding mode switch. The Workspace headline, numbered pane titles, all-caps labels, and the footer's shortcut hints are gone (the command palette and Help list every shortcut).
+- Workspace pane controls moved into the pane headings, giving each pane another 40 px of height. Narrow panes drop secondary buttons instead of squeezing their titles.
+- Explorer tree rows are one line (30 px instead of 58 px), so about twice as many values fit. **Show paths** brings the per-row path back; search results always show it.
+- Code view draws indent guides. Selected lines, matches, changed lines, and the active palette item share the same amber mark.
+- Compare's toolbar no longer touches the header, and its labels use sentence case.
+
+### Conveniences
+
+- Every change that replaces your source (format, repair, sort, convert, open, paste, and so on) shows an **Undo** button in its message, followed by **Redo**.
+- Drag the edge of the action column in Format mode to give input or output more room (or focus it and use ←/→; double-click resets). The split is remembered.
+- **Copy minified JSON** joins the Export menus.
+- Clicking **Invalid JSON** in the status line jumps to the error.
+- Menus that would run off the bottom of the window open upward instead of being cut off.
+- Messages pause while the pointer or keyboard focus is on them, so there is time to press Undo.
+- Dropping a file now lists every format it accepts.
+
+### Under the hood
+
+- `src/` is grouped into `lib` (pure logic), `workers`, `components`, `state` (hooks), and `styles`. The 1,865-line `App.tsx` is a composition root over seven hooks and two mode components; the stylesheet was rebuilt from three layers of patches into six focused files on a token system.
+- One long-lived worker handles edits instead of a new worker per change. It is replaced if it falls behind a newer edit and released after 30 seconds idle.
+- Undo history is capped by size (16 million characters) as well as by steps, so large documents can no longer hold hundreds of megabytes.
+- Moving the caret in Source finds the value under it by binary search instead of scanning every value, and explorer search skips building paths it cannot match: about 5 times faster per keystroke for plain queries on a 270,000-value document. Both are tested against the straightforward versions on awkward keys and every offset.
+- Strict TypeScript now rejects unused locals and parameters; unused exports and unreferenced CSS were removed.
+
+### Fixed
+
+Found by an independent adversarial review before release.
+
+- A result for an older edit can no longer appear while a newer edit is waiting to be processed. Changing the indent used to show the previous indentation under "Valid JSON" for a moment.
+- Expanding the input or output pane in Format mode no longer collapses the layout, and the action column stays usable.
+- The Export and Convert menus are no longer clipped by the action column.
+- Narrow Workspace panes wrap their controls onto a second row instead of hiding them, so Focus, Indent, and Download stay reachable.
+- The output tabs no longer overlap their buttons on mid-width screens.
+- An Undo offer lapses once a newer replacement, undo, or redo has happened, so it cannot revert the wrong change. Clear, Load sample, and Open in Workspace now offer Undo too.
+- The explorer search box has a visible focus indicator, the amber states meet WCAG contrast in both themes, the page has a heading, and Compare and the path bar are landmarks.
+- Only an explicit theme choice is remembered; until then the page keeps following the system setting, even if it changes while open. An unreadable saved value falls back to the system theme.
+
 ## 3.0.0 — 2026-10-04
 
 Restructured into three modes, adopting the best parts of jsonformatter.org, JSON Crack, and hucre.

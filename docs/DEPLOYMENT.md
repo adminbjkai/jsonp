@@ -40,7 +40,7 @@ docker compose ps
 docker stats --no-stream jsonp-web
 ```
 
-The multi-stage Dockerfile installs locked dependencies and builds the app, then copies only static assets into nginx. Base images are pinned by digest; update and test these pins deliberately. The public bundle has no external font or AI requests.
+The multi-stage Dockerfile installs locked dependencies and builds the app, then copies only static assets into nginx. Fonts are bundled into `/assets/` and `public/theme.js` (the pre-paint theme script) is served from the site root, both under the existing `script-src 'self'` and `font-src 'self'` policy. Base images are pinned by digest; update and test these pins deliberately. The public bundle has no external font or AI requests.
 
 `/assets/` responses are cached for one year with content hashes. HTML is revalidated. Missing assets return 404 instead of HTML. Unknown application routes fall back to the SPA. The content security policy permits local scripts/workers and inline styles needed for positioning graph/virtualized rows.
 

@@ -1,5 +1,6 @@
 /* Panes: the frame shared by Format and Workspace. */
 .pane {
+  container: pane / inline-size;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -11,12 +12,13 @@
 }
 .pane-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 0 8px;
   flex-shrink: 0;
-  height: 42px;
-  padding: 0 6px 0 12px;
+  min-height: 42px;
+  padding: 4px 6px 4px 12px;
   border-bottom: 1px solid var(--line);
 }
 .pane-title {
@@ -24,6 +26,7 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
+  min-height: 32px;
 }
 .workspace .pane-title {
   cursor: grab;
@@ -36,8 +39,11 @@
 }
 .pane-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 1px;
+  margin-left: auto;
 }
 .pane-actions button,
 .pane-toolbar > button {
@@ -109,6 +115,13 @@
   font-size: 12px;
 }
 
+/* A narrow pane wraps its controls onto a second row; the output tabs lose their icons first. */
+@container pane (max-width: 470px) {
+  .view-tabs svg {
+    display: none;
+  }
+}
+
 /* Format mode */
 .formatter {
   flex: 1;
@@ -127,7 +140,8 @@
 .formatter.expanded-output > .formatter-input,
 .formatter.expanded-input > .split-handle,
 .formatter.expanded-output > .split-handle {
-  display: none;
+  visibility: hidden;
+  border-width: 0;
 }
 .split-handle {
   position: relative;
@@ -151,6 +165,10 @@
 .split-handle:focus-visible::after {
   opacity: 0.85;
 }
+.split-handle:focus-visible::after {
+  opacity: 1;
+  background: var(--text);
+}
 .split-handle:focus-visible {
   outline: none;
 }
@@ -159,8 +177,13 @@
   flex-direction: column;
   gap: 6px;
   padding-top: 46px;
-  overflow-y: auto;
-  scrollbar-width: none;
+}
+/* On very short screens the column scrolls instead (its menus then open inside it). */
+@media (max-height: 620px) {
+  .formatter-actions {
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
 }
 .formatter-actions > .button,
 .formatter-actions .big-menu > .button {
@@ -608,11 +631,18 @@
     display: none;
   }
   .formatter-output > .pane-heading {
-    flex-wrap: wrap;
-    height: auto;
     row-gap: 6px;
     padding-top: 6px;
     padding-bottom: 6px;
+  }
+  .pane-actions button[aria-label^='Expand'],
+  .pane-actions button[aria-label='Restore layout'] {
+    display: none;
+  }
+  .formatter.expanded-input > .formatter-output,
+  .formatter.expanded-output > .formatter-input {
+    visibility: visible;
+    border-width: 1px;
   }
   .formatter-output .view-tabs {
     order: 2;
@@ -627,6 +657,9 @@
   }
 }
 @media (max-width: 800px) {
+  .selection-bar.idle {
+    display: none;
+  }
   .workspace-bar {
     padding: 8px var(--page);
   }

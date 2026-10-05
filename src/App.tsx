@@ -35,7 +35,7 @@ export default function App() {
   const settings = useSettings(doc.input);
   const layout = useLayout();
   const dialogs = useDialogs();
-  const { toast, notify, dismiss } = useToast();
+  const { toast, notify, dismiss, hold, release } = useToast();
   const [mode, setModeState] = useState<Mode>(initialMode);
   const [formatView, setFormatViewState] = useState<OutputView>(savedOutputView);
   const [search, setSearch] = useState('');
@@ -44,21 +44,32 @@ export default function App() {
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // A change that replaced the source offers Undo (and then Redo) in its toast.
+  // A change that replaced the source offers Undo (and then Redo) in its toast. The offer lapses
+  // once a newer replacement, undo, or redo has happened, so it can never revert the wrong change.
   const history = useRef(doc);
   history.current = doc;
   const announce = useCallback(
-    (message: string) =>
+    (message: string) => {
+      const stamp = history.current.revision.current;
+      const superseded = () =>
+        notify('Newer changes exist. Use Undo in the toolbar to step back through them.');
       notify(message, {
         label: 'Undo',
         run: () => {
-          if (history.current.undo())
-            notify('Undone', {
-              label: 'Redo',
-              run: () => history.current.redo() && notify('Redone'),
-            });
+          const current = history.current;
+          if (current.revision.current !== stamp) return superseded();
+          if (!current.undo()) return;
+          const after = current.revision.current;
+          notify('Undone', {
+            label: 'Redo',
+            run: () => {
+              if (history.current.revision.current !== after) return superseded();
+              if (history.current.redo()) notify('Redone');
+            },
+          });
         },
-      }),
+      });
+    },
     [notify],
   );
 
@@ -117,6 +128,7 @@ export default function App() {
     mode,
     switchMode,
     notify,
+    announce,
     fileRef,
     openConvert,
     focusSearch,
@@ -296,6 +308,7 @@ export default function App() {
             onOpenInWorkspace={(text) => {
               doc.replace(text);
               switchMode('workspace');
+              announce('Opened in Workspace');
             }}
           />
         </Suspense>
@@ -309,8 +322,9 @@ export default function App() {
         section={doc.activeSection}
         remembered={settings.remember}
         onInsights={() => dialogs.open('insights')}
+        onStatus={doc.problem ? editor.goToError : undefined}
       />
-      <Toast toast={toast} onDismiss={dismiss} />
+      <Toast toast={toast} onDismiss={dismiss} onHold={hold} onRelease={release} />
       {dragOver && (
         <div className="drop-overlay">
           <Upload size={36} />
@@ -328,11 +342,11 @@ export default function App() {
       <HelpDialog
         dialogRef={dialogs.refs.help}
         onSample={() => {
-          doc.loadSample();
+          actions.sample.run();
           settings.dismissWelcome();
         }}
         onQuery={(query) => {
-          if (doc.getTree() === null || !entries.length) doc.loadSample();
+          if (doc.getTree() === null || !entries.length) actions.sample.run();
           focusSearch(query);
         }}
       />

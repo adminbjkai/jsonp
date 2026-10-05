@@ -73,7 +73,7 @@ export default function ConvertDialog({
         </button>
       </div>
       {(['types', 'data'] as const).map((group) => (
-        <div className="convert-scope convert-formats" key={group} style={{ marginTop: 14 }}>
+        <div className="convert-scope" key={group} style={{ marginTop: 14 }}>
           <span id={`convert-${group}`} style={{ minWidth: 40 }}>
             {group === 'types' ? 'Types' : 'Data'}
           </span>

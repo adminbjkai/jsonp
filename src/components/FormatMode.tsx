@@ -193,6 +193,7 @@ export default function FormatMode({ app }: { app: AppContext }) {
           wrap={settings.wrap}
           onOpen={actions.open.run}
           onPaste={actions.paste.run}
+          onSample={actions.sample.run}
         />
         <div className="pane-footnote">
           <span>
@@ -207,7 +208,7 @@ export default function FormatMode({ app }: { app: AppContext }) {
       {handle()}
       <nav className="formatter-actions" aria-label="Formatter actions" ref={rail}>
         <button
-          className="button primary-button big-action"
+          className="button primary-button"
           aria-pressed={indent !== 0}
           onClick={() => {
             doc.setIndent(indent || lastIndent);
@@ -233,7 +234,7 @@ export default function FormatMode({ app }: { app: AppContext }) {
           </select>
         </label>
         <button
-          className="button big-action"
+          className="button"
           aria-pressed={indent === 0}
           onClick={() => {
             doc.setIndent(0);
@@ -242,13 +243,13 @@ export default function FormatMode({ app }: { app: AppContext }) {
         >
           <Minimize size={16} /> Minify
         </button>
-        <button className="button big-action" onClick={editor.validateNow}>
+        <button className="button" onClick={editor.validateNow}>
           <CheckCircle2 size={16} /> Validate
         </button>
-        <button className="button big-action" disabled={!repair} onClick={editor.repairSource}>
+        <button className="button" disabled={!repair} onClick={editor.repairSource}>
           <Wrench size={16} /> Repair
         </button>
-        <button className="button big-action" disabled={!valid} onClick={actions.sort.run}>
+        <button className="button" disabled={!valid} onClick={actions.sort.run}>
           <ArrowDownAZ size={16} /> Sort keys
         </button>
         <Menu
@@ -262,11 +263,11 @@ export default function FormatMode({ app }: { app: AppContext }) {
             run: () => app.openConvert(format.id),
           }))}
         />
-        <button className="button big-action" disabled={!valid} onClick={actions.schema.run}>
+        <button className="button" disabled={!valid} onClick={actions.schema.run}>
           <ShieldCheck size={16} /> Schema
         </button>
         <span className="actions-divider" aria-hidden="true" />
-        <button className="button big-action" onClick={() => app.switchMode('compare')}>
+        <button className="button" onClick={() => app.switchMode('compare')}>
           <GitCompareArrows size={16} /> Compare
         </button>
         <Menu

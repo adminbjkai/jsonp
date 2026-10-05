@@ -5,14 +5,26 @@ import type { ToastState } from '../state/useToast';
 export default function Toast({
   toast,
   onDismiss,
+  onHold,
+  onRelease,
 }: {
   toast: ToastState | null;
   onDismiss: () => void;
+  onHold: () => void;
+  onRelease: () => void;
 }) {
   if (!toast) return null;
   const { action } = toast;
   return (
-    <div className="toast" role="status" key={toast.id}>
+    <div
+      className="toast"
+      role="status"
+      key={toast.id}
+      onMouseEnter={onHold}
+      onMouseLeave={onRelease}
+      onFocus={onHold}
+      onBlur={onRelease}
+    >
       <Check size={15} />
       <span>{toast.message}</span>
       {action && (

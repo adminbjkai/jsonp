@@ -7,6 +7,7 @@ import {
   jsPath,
   mappingRows,
   entryAtOffset,
+  entryMatcher,
   MAX_INPUT,
   EXAMPLE,
 } from '../src/lib/json';
@@ -150,6 +151,79 @@ test('entryAtOffset finds the same entry as scanning every entry', () => {
         expected,
         `offset ${offset} in ${source.slice(0, 30)}`,
       );
+    }
+  }
+});
+
+test('explorer search matches exactly what scanning every path format would', () => {
+  const awkward = {
+    plain: 1,
+    'with space': 'two words',
+    'quo"te': true,
+    'back\\slash': null,
+    'new\nline': 'x',
+    'tab\t': 5,
+    'tilde~key': ['a~b', 'u0001'],
+    'slash/key': { '0b': 'n' },
+    'uni–é': '😀',
+    '😀': [],
+    $dollar: { 'user-1': 'USER-1', user_2: 3 },
+    '': [{ id: 12, name: 'Name' }],
+  };
+  const tame = {
+    rows: [
+      { id: 1, 'user-1': 'abc', ok: true },
+      { id: 12, tags: ['x'] },
+    ],
+    total: 2,
+  };
+  const queries = [
+    'plain',
+    'PLAIN',
+    'user-1',
+    'user_2',
+    'u0001',
+    'n',
+    '0b',
+    '0',
+    '12',
+    'name',
+    'string',
+    'true',
+    'null',
+    'object',
+    'array',
+    'two words',
+    ' two',
+    '/slash',
+    '~1',
+    '.rows',
+    '$.rows[0]',
+    '["user-1"]',
+    '[0]',
+    'tab',
+    'x',
+    'é',
+    '😀',
+    'id',
+    'rows',
+    'ok',
+    'abc',
+    'e',
+    '-',
+    '_',
+  ];
+  for (const value of [awkward, tame]) {
+    const { entries } = processJSON(JSON.stringify(value), 2);
+    const matcher = entryMatcher(entries);
+    for (const query of queries) {
+      const q = query.toLowerCase();
+      const expected = entries.filter((entry) =>
+        `${entry.path} ${jsonPath(entry.parts)} ${entry.value} ${entry.type}`
+          .toLowerCase()
+          .includes(q),
+      );
+      assert.deepEqual(entries.filter(matcher(query)), expected, `query ${JSON.stringify(query)}`);
     }
   }
 });

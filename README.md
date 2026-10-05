@@ -2,14 +2,17 @@
 
 A private JSON toolkit at **[jsonp.bjk.ai](https://jsonp.bjk.ai)**. Format, repair, explore, graph, convert, validate, and compare JSON without sending it to a server.
 
-![Format mode](docs/workspace.png)
+![Format mode](docs/format.png)
 
 ## Three modes
 
 Switch modes from the header. The address bar remembers your choice (`#format`, `#workspace`, `#compare`), so each mode can be bookmarked.
 
-- **Format** is the quick one, in the spirit of jsonformatter.org. Paste on the left and read clean JSON on the right, with one column of clearly labelled actions between them: **Beautify** (2, 3, or 4 spaces, or tabs), **Minify**, **Validate**, **Repair**, **Sort keys**, **Convert**, **Schema**, **Compare**, and **Export**. The output can be shown as **Code**, **Tree**, **Table**, or **Graph**, and **Use the output as input** copies the result back.
-- **Workspace** puts Source, Formatted, Explorer, Table, and Graph panes side by side for deep exploration. Panes can be dragged, resized, focused, and collapsed.
+- **Format** is the quick one, in the spirit of jsonformatter.org. Paste on the left and read clean JSON on the right, with one column of clearly labelled actions between them: **Beautify** (2, 3, or 4 spaces, or tabs), **Minify**, **Validate**, **Repair**, **Sort keys**, **Convert**, **Schema**, **Compare**, and **Export**. The output can be shown as **Code**, **Tree**, **Table**, or **Graph**, and **Use the output as input** copies the result back. Drag the edge of the action column (or focus it and use ←/→) to change how much room input and output get; double-click it to reset.
+- **Workspace** puts Source, Formatted, Explorer, Table, and Graph panes side by side for deep exploration. Panes can be dragged, resized, focused, and collapsed. A path bar above them shows the selected value's ancestors, its JSONPath, and a jump back to the source.
+
+  ![Workspace mode](docs/workspace.png)
+
 - **Compare** lines up two documents side by side and highlights every difference down to the character. Scrolling is synced, **Prev/Next** steps through each change with an "i of N" counter, and **Only changes** folds unchanged lines. Keys can be sorted so key order never counts, and array order can be ignored. A list of value-level changes jumps to each one. Each side can open, paste, format, or repair its own document.
 
 ![Compare mode](docs/compare.png)
@@ -27,9 +30,9 @@ Press **Ctrl/⌘ + K** to search every action by name. **Help** explains each mo
 
 ## Views
 
-- **Source:** line numbers, an error-line marker, Tab/Shift+Tab indentation, line wrapping, live validation, file import or drop, and multi-step undo and redo for every replacement (format, repair, transforms, open, clear).
-- **Code (Formatted):** syntax colors and line numbers, with indentation of 2, 3, or 4 spaces, tabs, or minified output. Formatting preserves exact number tokens, negative zero, exponents, string escapes, key order, and duplicate keys.
-- **Tree (Explorer):** search keys, values, or types, or run JSONPath queries (names, wildcards, recursive descent, indexes, slices, unions, and filters with comparisons, regular expressions, `&&`, `||`, and `!`). Copy query results as a JSON array. Choose JSONPath, JSON Pointer, or JavaScript paths; use breadcrumbs, previous/next, or arrow keys to move through results.
+- **Source:** line numbers, an error-line marker, Tab/Shift+Tab indentation, line wrapping, live validation, file import or drop, and multi-step undo and redo for every replacement (format, repair, transforms, open, clear). The message after each replacement has an **Undo** button, and the status line's **Invalid JSON** jumps to the error.
+- **Code (Formatted):** syntax colors, line numbers, and indent guides, with indentation of 2, 3, or 4 spaces, tabs, or minified output. Formatting preserves exact number tokens, negative zero, exponents, string escapes, key order, and duplicate keys.
+- **Tree (Explorer):** one-line rows for compact browsing; **Show paths** adds each value's path underneath, and search results always show it. Search keys, values, or types, or run JSONPath queries (names, wildcards, recursive descent, indexes, slices, unions, and filters with comparisons, regular expressions, `&&`, `||`, and `!`). Copy query results as a JSON array. Choose JSONPath, JSON Pointer, or JavaScript paths; use breadcrumbs, previous/next, or arrow keys to move through results.
 - **Table:** arrays of records as a sortable, filterable, virtualized grid. Click any cell to select that value, or convert the array to CSV.
 - **Graph** (inspired by JSON Crack): connected cards for objects and arrays, with key labels on the edges.
   - Collapse or expand any branch, or all of them, or show only the selected branch.
@@ -40,7 +43,7 @@ Press **Ctrl/⌘ + K** to search every action by name. **Help** explains each mo
   - Colour swatches show hex, `rgb()`, and `hsl()` values; URLs are links. Shift+1 focuses the root and Shift+2 fits the graph.
 - **Insights:** value counts by type, nesting depth, most common keys, largest arrays, and the longest string. Open it from the status bar.
 
-Dark and light themes, the mode, indentation, pane order, and graph preferences persist on this device. There are no AI requests, external fonts, analytics, or network calls with your data.
+Dark and light themes (the system preference on a first visit, then your choice), the mode, indentation, the Format split, pane order, Show paths, and graph preferences persist on this device. There are no AI requests, external fonts, analytics, or network calls with your data.
 
 ### Tools
 
@@ -51,7 +54,7 @@ Dark and light themes, the mode, indentation, pane order, and graph preferences 
 | Convert        | **Types:** TypeScript, JSON Schema 2020-12, Go, Rust (serde), Python dataclasses, Zod, Kotlin (kotlinx.serialization), C# (System.Text.Json). **Data:** YAML, CSV, XML             |
 | Schema         | Validate against a JSON Schema (drafts 4, 7, 2019-09, 2020-12). Generate a starting schema from the document; click a problem to jump to it                                        |
 | Compare        | The Compare mode described above                                                                                                                                                   |
-| Export         | Copy or download formatted JSON, an Excel IRD workbook, or a share link                                                                                                            |
+| Export         | Copy formatted or minified JSON, download it, build an Excel IRD workbook, or copy a share link                                                                                    |
 
 Type generators infer shapes across array items: keys missing in some items become optional, mixed types become unions, and `null` becomes nullable. All transforms and conversions keep exact number tokens. Imports keep numbers exact too: YAML and CSV values such as `9007199254740993` stay exact, CSV values such as `007` stay strings, and XML values stay strings. CSV export prefixes cells that start with `=`, `+`, `-`, `@`, a tab, or a carriage return with an apostrophe, unless the cell is a number, to prevent spreadsheet formula injection.
 
@@ -117,7 +120,7 @@ npm audit
 
 GitHub Actions runs these checks on pushes and pull requests, testing the production build in Chromium.
 
-`check` verifies formatting, strict TypeScript, core regressions, and a production build. Browser tests cover all three modes on desktop and mobile, exact numbers and escaped paths, file import (JSON, YAML, XML, CSV, XLSX), Excel/JSON/image downloads, graph collapse/search/export, side-by-side compare, schema validation, themes, large-document virtualization, and accessibility. To test an existing deployment, set `TEST_URL` instead of starting Vite:
+`check` verifies formatting, strict TypeScript (including unused code), core regressions, and a production build. Browser tests cover all three modes on desktop and mobile, exact numbers and escaped paths, file import (JSON, YAML, XML, CSV, XLSX), Excel/JSON/image downloads, graph collapse/search/export, side-by-side compare, schema validation, themes, large-document virtualization, and accessibility. To test an existing deployment, set `TEST_URL` instead of starting Vite:
 
 ```sh
 TEST_URL=https://jsonp.bjk.ai npm run test:e2e
@@ -125,29 +128,30 @@ TEST_URL=https://jsonp.bjk.ai npm run test:e2e
 
 ## Code map
 
-| File                                                              | Responsibility                                                                               |
-| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `src/App.tsx`                                                     | Modes, document state, action list, worker lifecycle, menus, layout, shortcuts               |
-| `src/FormatterView.tsx`                                           | Format mode layout: input, action column, and output views                                   |
-| `src/CompareView.tsx`, `src/linediff.ts`, `src/compare.worker.ts` | Compare mode, line alignment (jsdiff), and background comparison                             |
-| `src/json.ts`, `src/json.worker.ts`                               | Lossless formatting, typed ranges, and background processing with repair                     |
-| `src/tree.ts`                                                     | Lossless JSON tree, serialization, transforms, and exact number comparison                   |
-| `src/locate.ts`, `src/repair.ts`                                  | Plain-language error locations and token-level JSON repair                                   |
-| `src/query.ts`, `src/query.worker.ts`, `src/diff.ts`              | JSONPath evaluation (cancellable) and structural comparison                                  |
-| `src/convert.ts`                                                  | Type generators (TypeScript, Go, Rust, Python, Zod, Kotlin, C#), JSON Schema, YAML, CSV, XML |
-| `src/validate.ts`, `src/SchemaDialog.tsx`                         | JSON Schema validation (@cfworker/json-schema, no eval)                                      |
-| `src/importFile.ts`, `src/importers.ts`, `src/import.worker.ts`   | YAML, XML, CSV, XLSX, and ODS import with limits                                             |
-| `src/workbooks.ts`, `src/export.ts`, `src/export.worker.ts`       | Excel IRD workbooks (hucre) and downloads                                                    |
-| `src/share.ts`                                                    | Compressed share links in the URL fragment                                                   |
-| `src/Explorer.tsx`, `src/PathBar.tsx`                             | Searchable, queryable virtualized tree/list, breadcrumbs, and path copying                   |
-| `src/SourceEditor.tsx`, `src/Output.tsx`                          | Source gutter and indentation; virtualized syntax-colored output                             |
-| `src/TableView.tsx`, `src/Graph.tsx`                              | Record grid and the lazy-loaded, collapsible, exportable graph                               |
-| `src/CommandPalette.tsx`, `src/Menu.tsx`                          | Action search and accessible toolbar menus                                                   |
-| `src/HelpDialog.tsx`, `src/Insights.tsx`                          | Guided help and document profile                                                             |
-| `src/ConvertDialog.tsx`, `src/ExportDialog.tsx`, `src/ird.ts`     | Conversion preview, workbook choices, IRD fields, and instructions                           |
-| `src/index.css`, `src/styles/*.css`                               | Themes, responsive layouts, and reduced-motion styling                                       |
+| Path                                                                       | Responsibility                                                                                   |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `src/App.tsx`, `src/context.ts`                                            | Composition root: wires the state hooks, shortcuts, mode routing, and dialogs                    |
+| `src/actions.tsx`                                                          | One action list feeding the menus, the command palette, and shortcuts                            |
+| `src/state/useDocument.ts`                                                 | Source, background processing (one long-lived worker), selection, and undo history               |
+| `src/state/useEditor.ts`, `useIO.ts`                                       | Caret and selection sync, transforms, validation; clipboard, files, share links, Excel           |
+| `src/state/useLayout.ts`, `useSettings.ts`, `useDialogs.ts`, `useToast.ts` | Workspace panes, theme and draft, dialog refs, and toasts with Undo                              |
+| `src/state/prefs.ts`                                                       | Device-local preferences and the mode list                                                       |
+| `src/components/FormatMode.tsx`, `WorkspaceMode.tsx`                       | The two document modes, with the action column, split handle, and pane layout                    |
+| `src/components/CompareView.tsx`                                           | Compare mode: editors, aligned diff, navigation, and change list                                 |
+| `src/components/Explorer.tsx`, `PathBar.tsx`, `TableView.tsx`, `Graph.tsx` | Searchable tree, path bar, record grid, and the lazy-loaded collapsible graph                    |
+| `src/components/SourceEditor.tsx`, `Output.tsx`, `OutputBody.tsx`          | Source gutter and indentation; virtualized, colored output with indent guides; error states      |
+| `src/components/*Dialog.tsx`, `Insights.tsx`, `CommandPalette.tsx`         | Convert, Schema, Export, Help, document profile, and the action palette                          |
+| `src/components/Header.tsx`, `StatusBar.tsx`, `Toast.tsx`, `Menu.tsx`      | Chrome: modes, status line, notifications, accessible menus                                      |
+| `src/lib/json.ts`, `tree.ts`, `locate.ts`, `repair.ts`                     | Lossless formatting and ranges, tree and transforms, error locations, token-level repair         |
+| `src/lib/query.ts`, `diff.ts`, `linediff.ts`                               | JSONPath, structural comparison, and line alignment (jsdiff)                                     |
+| `src/lib/convert.ts`, `validate.ts`                                        | Type generators, JSON Schema, YAML, CSV, XML; schema validation (@cfworker/json-schema)          |
+| `src/lib/importFile.ts`, `importers.ts`, `export.ts`, `workbooks.ts`       | Imports (YAML, XML, CSV, XLSX, ODS), downloads, and Excel IRD workbooks (hucre)                  |
+| `src/lib/ird.ts`, `mapping-example.ts`, `share.ts`                         | IRD fields and the worked example; compressed share links                                        |
+| `src/workers/*.worker.ts`                                                  | Cancellable background jobs: format, query, compare, validate, import, export                    |
+| `src/styles/*.css`                                                         | Design tokens (themes, type, motion), then base, shell, panes, explorer, dialogs, graph, compare |
+| `public/theme.js`                                                          | Applies the saved or system theme before first paint                                             |
 
-Heavy libraries load only when used: the graph, Compare, image export, the YAML/XML/spreadsheet importers, and Excel export each live in their own chunk or worker.
+Heavy libraries load only when used: the graph, Compare, image export, the YAML/XML/spreadsheet importers, and Excel export each live in their own chunk or worker. Fonts ([Schibsted Grotesk](https://fonts.google.com/specimen/Schibsted+Grotesk) and [Red Hat Mono](https://fonts.google.com/specimen/Red+Hat+Mono), SIL OFL) ship with the app; nothing loads from another origin.
 
 ## Credits
 

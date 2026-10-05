@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export interface ToastAction {
+interface ToastAction {
   label: string;
   run: () => void;
 }
@@ -27,5 +27,11 @@ export function useToast() {
     // A message with an action stays long enough to be used.
     timer.current = setTimeout(() => setToast(null), action ? 7000 : 3500);
   }, []);
-  return { toast, notify, dismiss };
+  /** Hovering or focusing a message keeps it; leaving starts a shorter countdown. */
+  const hold = useCallback(() => clearTimeout(timer.current), []);
+  const release = useCallback(() => {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setToast(null), 3000);
+  }, []);
+  return { toast, notify, dismiss, hold, release };
 }

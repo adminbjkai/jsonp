@@ -8,7 +8,7 @@ export interface ImportResult {
 }
 export const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 export const MAX_IMPORT_CELLS = 300_000;
-export const IMPORT_TIMEOUT = 30_000;
+const IMPORT_TIMEOUT = 30_000;
 
 const EXTENSIONS: Record<string, ImportFormat> = {
   json: 'json',

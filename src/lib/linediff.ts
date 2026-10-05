@@ -4,21 +4,21 @@ import { diffTrees, type Change, type ChangeKind } from './diff';
 import { processJSON, pointer } from './json';
 import { parseTree, serialize, sortKeys as sortTreeKeys, type Part } from './tree';
 
-export type RowKind = 'same' | 'add' | 'del' | 'mod';
+type RowKind = 'same' | 'add' | 'del' | 'mod';
 /** One aligned row. `a` and `b` are 0-based line indexes in the original and modified texts. */
 export interface Row {
   kind: RowKind;
   a?: number;
   b?: number;
 }
-export interface Alignment {
+interface Alignment {
   rows: Row[];
   /** Row index where each run of consecutive changed rows starts. */
   hunks: number[];
   /** True when the line diff gave up (timeout) and lines were paired by position. */
   approximate: boolean;
 }
-export interface AlignOptions {
+interface AlignOptions {
   /** Milliseconds before the line diff falls back to positional pairing (default 3000). */
   timeout?: number;
   /** Upper bound on edit distance before falling back (mainly for tests). */
@@ -91,7 +91,7 @@ export function pairToRows(
 }
 
 /** Row indexes where each run of non-'same' rows begins. */
-export function findHunks(rows: Row[]): number[] {
+function findHunks(rows: Row[]): number[] {
   const hunks: number[] = [];
   for (let i = 0; i < rows.length; i++)
     if (rows[i].kind !== 'same' && (i === 0 || rows[i - 1].kind === 'same')) hunks.push(i);
@@ -172,7 +172,7 @@ export function alignLines(a: string[], b: string[], options: AlignOptions = {})
 
 // ---- Display list (folding unchanged runs) ----------------------------------------------
 
-export interface Fold {
+interface Fold {
   start: number;
   end: number;
 }
@@ -183,7 +183,7 @@ export interface Display {
   starts: Int32Array;
   folds: Fold[];
 }
-export interface DisplayOptions {
+interface DisplayOptions {
   onlyChanges: boolean;
   context?: number;
   /** Fold start rows the person expanded. */
@@ -254,7 +254,7 @@ export interface CompareRequest {
   sortKeys: boolean;
   ignoreOrder: boolean;
 }
-export interface StructuralChange extends Change {
+interface StructuralChange extends Change {
   /** Row to jump to: the path's line in the original (or modified, for additions). */
   row: number;
 }

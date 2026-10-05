@@ -7,8 +7,6 @@ import { initialDraft, save, saved } from './prefs';
 
 const EMPTY: DocumentResult = { output: '', entries: [], warnings: [], error: null };
 const DEBOUNCE = 180;
-/** A job older than this is abandoned (worker replaced) when newer input arrives. */
-const STALE_JOB = 250;
 /** The worker is released after this much idle time. */
 const IDLE_WORKER = 30_000;
 const HISTORY_STEPS = 30;
@@ -39,6 +37,8 @@ export function useDocument() {
   const [lastIndent, setLastIndent] = useState<Indent>(indent || 2);
   const [active, setActive] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<'key' | 'value'>('value');
+  /** Counts every replace, undo, and redo, so a toast can tell whether its change is still the latest. */
+  const revision = useRef(0);
   const [undoStack, setUndoStack] = useState<string[]>([]);
   const [redoStack, setRedoStack] = useState<string[]>([]);
 
@@ -53,7 +53,6 @@ export function useDocument() {
     worker: undefined as Worker | undefined,
     seq: 0,
     outstanding: 0,
-    since: 0,
     idle: undefined as ReturnType<typeof setTimeout> | undefined,
     /** The source of the most recent request: what a reply or failure is reported against. */
     source: '',
@@ -68,11 +67,14 @@ export function useDocument() {
   useEffect(() => releaseWorker, [releaseWorker]);
   useEffect(() => {
     setBusy(true);
+    // The ticket is taken now, not when the request is sent: a reply to any earlier edit is stale
+    // from this moment, even while this one waits out the debounce.
+    const state = job.current;
+    const seq = ++state.seq;
     const timer = setTimeout(() => {
-      const state = job.current;
       clearTimeout(state.idle);
-      if (state.worker && state.outstanding && performance.now() - state.since > STALE_JOB)
-        releaseWorker();
+      // Anything still running was started for older input, so it is not worth finishing.
+      if (state.worker && state.outstanding) releaseWorker();
       if (!state.worker) {
         const worker = new Worker(new URL('../workers/json.worker.ts', import.meta.url), {
           type: 'module',
@@ -96,9 +98,8 @@ export function useDocument() {
         state.worker = worker;
       }
       state.source = input;
-      if (!state.outstanding) state.since = performance.now();
       state.outstanding++;
-      state.worker.postMessage({ seq: ++state.seq, source: input, indent });
+      state.worker.postMessage({ seq, source: input, indent });
     }, DEBOUNCE);
     return () => clearTimeout(timer);
   }, [input, indent, releaseWorker]);
@@ -137,6 +138,7 @@ export function useDocument() {
   /** Replaces the whole source, keeping the previous text for Undo. */
   const replace = useCallback(
     (text: string) => {
+      revision.current++;
       setUndoStack((prev) => remember(prev, input));
       setRedoStack([]);
       setActive(null);
@@ -148,6 +150,7 @@ export function useDocument() {
   const undo = useCallback(() => {
     const previous = undoStack.at(-1);
     if (previous === undefined) return false;
+    revision.current++;
     setUndoStack(undoStack.slice(0, -1));
     setRedoStack((prev) => remember(prev, input));
     setActive(null);
@@ -157,6 +160,7 @@ export function useDocument() {
   const redo = useCallback(() => {
     const next = redoStack.at(-1);
     if (next === undefined) return false;
+    revision.current++;
     setRedoStack(redoStack.slice(0, -1));
     setUndoStack((prev) => remember(prev, input));
     setActive(null);
@@ -171,6 +175,7 @@ export function useDocument() {
     replace,
     undo,
     redo,
+    revision,
     canUndo: undoStack.length > 0,
     canRedo: redoStack.length > 0,
     loadSample,

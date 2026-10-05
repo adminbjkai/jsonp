@@ -27,6 +27,7 @@ export default function Header({ mode, onMode, theme, onTheme, onPalette, onHelp
   const next = theme === 'dark' ? 'light' : 'dark';
   return (
     <header className="app-header">
+      <h1 className="sr-only">JSON Prettify</h1>
       <a href="/" className="brand" aria-label="JSON Prettify home">
         <span className="brand-mark">
           <Braces size={17} strokeWidth={2.2} />

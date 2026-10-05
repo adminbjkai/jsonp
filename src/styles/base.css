@@ -208,6 +208,10 @@ h2 {
   left: auto;
   right: 0;
 }
+.menu-list.drop-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
 .menu-separator {
   border-top: 1px solid var(--line);
   margin-top: 5px;
